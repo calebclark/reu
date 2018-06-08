@@ -1,15 +1,22 @@
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
+int test();
+char test_frame(int n, int** male_prefs, int** female_prefs, int* correct_output); 
+void  GS(int n, int** male_prefs, int** female_prefs, int* output); 
 int main() {
+    if (test()) {
+       printf("tests fail\n");
+       return 1; 
+    }
     const int n = 200;
     int** male_prefs = malloc(sizeof(int)*n*n);
     int** female_prefs = malloc(sizeof(int)*n*n);
     int* output= malloc(sizeof(int)*n);
-    time_t start = time();
+    time_t start = time(NULL);
      
-    time_t stop = time();
-    int seconds = difftime(stop,start);
+    time_t stop = time(NULL);
+    double seconds = difftime(stop,start);
     printf("took %f seconds for n=%d",seconds,n); 
     free(male_prefs);
     free(female_prefs);
@@ -22,33 +29,35 @@ int main() {
  */
 int test() {
     // test 1
-   int[3][3] m = { { 1, 2, 3}, {1, 2, 3},{ 1, 2, 3}};
-   int[3][3] f = { { 1, 2, 3}, {1, 2, 3},{ 1, 2, 3}};
-   int[3] correct = {1,2,3};
-   if (!test_frame(3,m,f,correct))
+   int m1[3][3] = { { 1, 2, 3}, {1, 2, 3},{ 1, 2, 3}};
+   int f1[3][3] = { { 1, 2, 3}, {1, 2, 3},{ 1, 2, 3}};
+   int correct1[3] = {1,2,3};
+   if (!test_frame(3,(int**)m1,(int**)f1,correct1))
        return 1;
    // test 2
-   int[3][3] m = { { 3, 2, 1}, {2, 1, 3},{ 1, 3, 2}};
-   int[3][3] f = { { 3, 2, 1}, {2, 1, 3},{ 1, 3, 2}};
-   int[3] correct = {3,2,1};
-   if (!test_frame(3,m,f,correct))
-       return 1;
+   int m2[3][3] = { { 3, 2, 1}, {2, 1, 3},{ 1, 3, 2}};
+   int f2[3][3] = { { 3, 2, 1}, {2, 1, 3},{ 1, 3, 2}};
+   int correct2[3] = {3,2,1};
+   if (!test_frame(3,(int**)m2,(int**)f2,correct2))
+       return 2;
+   return 0;
 }
 /*
  * testing framework
  * returns: 0 if correct_output is equal to the output and 0 otherwise
  */
-char test_frame(int n, int** male_prefs, int** female_prefs, int** correct_output) {
-    int** test_output = malloc(sizeof(int)*n);
+char test_frame(int n, int** male_prefs, int** female_prefs, int* correct_output) {
+    int* test_output = malloc(sizeof(int)*n);
     GS(n,male_prefs,female_prefs, test_output);
     char to_return = 0;
     for (int i = 0; i < n; i++) {
-        if (test_output[i] != output[i]) {
-            to _return = 1;
+        if (test_output[i] != correct_output[i]) {
+            to_return = 1;
             break;
         }
     } 
     free(test_output);
+    return to_return;
 }
 /* 
  * Find a stable matching 
@@ -56,14 +65,13 @@ char test_frame(int n, int** male_prefs, int** female_prefs, int** correct_outpu
  * n - The number of males/females
  * male_prefs - An nxn array of ints representing where male_pref[i][j] = k  
  *              indicates that female k ranks jth on male i's preference list 
- * female_prefs - The female preferences with the same layout as the male preferences
  *
  * ouput - An array of length n where output is stored. It is format so output[i] = j 
  *         that male i is matched with female j.
  *
  */
-void  GS(const int n, const int** male_prefs, const int** female_prefs, int* output) {
-    for (int i = 0; i < n; i++) {
-    }
+void  GS(int n, int** male_prefs, int** female_prefs, int* output) {
+    for (;;){
 
+    }
 }
