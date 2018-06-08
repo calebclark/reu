@@ -71,7 +71,13 @@ char test_frame(int n, int** male_prefs, int** female_prefs, int* correct_output
  *
  */
 void  GS(int n, int** male_prefs, int** female_prefs, int* output) {
+    // where all the men are in their proposal lists
+    int* indices = calloc(sizeof(int),n)
+   
     for (;;){
 
+
+
     }
+    free(indices);
 }
