@@ -71,7 +71,10 @@ char test_frame(int n, int** male_prefs, int** female_prefs, int* correct_output
  *
  */
 void  GS(int n, int** male_prefs, int** female_prefs, int* output) {
-    for (;;){
+    // false if any man is still unmatched
+    all_matched = 0;
+    while (!all_matched){
+        for (int i = 0
 
     }
 }
