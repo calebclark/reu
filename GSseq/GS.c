@@ -15,7 +15,7 @@ int main() {
     // seed the random number generator
     srand(time(0));
     // the number of males/females
-    const int n = 40000;
+    const int n = 60000;
     // allocate arrays
     int (*male_prefs)[n] = malloc(sizeof(int)*n*n);
     int (*female_prefs)[n] = malloc(sizeof(int)*n*n);
@@ -103,6 +103,9 @@ typedef struct {
     // 1 if currently dating (on thread), 0 if not dating
     char is_dating;
 } man_info;
+
+
+
 /* 
  * Find a stable matching 
  * Params:
@@ -153,6 +156,7 @@ void  GS(int n, int male_prefs[n][n], int female_prefs[n][n], int output[n]) {
     free(fast_female);
     free(output_used);
 }
+
                         
 
 
