@@ -11,15 +11,22 @@ int main() {
     if ( test_result) {
        printf("test %d failed\n",test_result);
        return 1; 
+    } else {
+        printf("tests pass!");
     }
+
     // seed the random number generator
     srand(time(0));
     // the number of males/females
-    const int n = 60000;
+    const int n = 10000;
     // allocate arrays
     int (*male_prefs)[n] = malloc(sizeof(int)*n*n);
     int (*female_prefs)[n] = malloc(sizeof(int)*n*n);
     int *output = malloc(sizeof(int)*n);
+    if (male_prefs == NULL || female_prefs == NULL) {
+        printf("malloc error\n");
+        return 2;
+    }
     // fill with a random permutation
     // first fill
     for (int i = 0; i < n; i++) {
@@ -48,7 +55,7 @@ int main() {
     GS(n,male_prefs,female_prefs,output);
     clock_t stop = clock();
     double seconds = ((double)(stop-start))/CLOCKS_PER_SEC;
-    printf("took %f seconds for n=%d",seconds,n); 
+    printf("took %f seconds for n=%d\n",seconds,n); 
     free(male_prefs);
     free(female_prefs);
     free(output);
@@ -104,6 +111,18 @@ typedef struct {
     char is_dating;
 } man_info;
 
+// HELPER METHODS FOR GS (made for profiling purposes
+int** make_fast_female(int n, int female_prefs[n][n])  {
+
+    int (*fast_female)[n]= malloc(sizeof(int)*n*n);
+    for (int f = 0; f < n; f++) {
+       for (int r = 0; r < n; r++) {
+            int m = female_prefs[f][r];
+            fast_female[f][m] = r;
+       }
+    } 
+    return (int**) fast_female;
+}
 
 
 /* 
@@ -123,15 +142,9 @@ void  GS(int n, int male_prefs[n][n], int female_prefs[n][n], int output[n]) {
     // 0 if an output slot has not yet been initialized
     char* output_used = calloc(sizeof(char),n);
     // flip female prefs for easy access
-    int (*fast_female)[n] = malloc(sizeof(int)*n*n);
-    for (int f = 0; f < n; f++) {
-       for (int r = 0; r < n; r++) {
-            int m = female_prefs[f][r];
-            fast_female[f][m] = r;
-       }
-    } 
     // where all the men are in their proposal lists
     man_info* state = calloc(n,sizeof(man_info));
+    int (*fast_female)[n] = (int (*)[n]) make_fast_female(n,female_prefs);
    
     // false if any man is still unmatched
     int all_matched = 0;
@@ -156,6 +169,7 @@ void  GS(int n, int male_prefs[n][n], int female_prefs[n][n], int output[n]) {
     free(fast_female);
     free(output_used);
 }
+
 
                         
 
