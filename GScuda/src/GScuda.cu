@@ -38,7 +38,7 @@ void  GS(int n, int** male_prefs, int** female_prefs, int* output)
 	
 	//static const int BLOCK_SIZE = 256;
 	//const int blockCount = (size+BLOCK_SIZE-1)/BLOCK_SIZE;
-	GSKernel<<<1,1>>> (n, d_male_prefs,d_female_prefs, d_output);
+	GSKernel<<<1,n>>> (n, d_male_prefs,d_female_prefs, d_output);
 
 	CUDA_CHECK_RETURN(cudaMemcpy(output, d_output, sizeof(int)*n, cudaMemcpyDeviceToHost));
 	CUDA_CHECK_RETURN(cudaFree(d_male_prefs));
