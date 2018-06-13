@@ -1,0 +1,7 @@
+*.dat
+stable-marriage-complete-cpu
+stable-marriage-complete-st
+stable-marriage-cpu
+stable-marriage-st
+*.dSYM/
+*.o

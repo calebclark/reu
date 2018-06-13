@@ -1,0 +1,5 @@
+I've tried to keep the structure of this pretty flat. The folders here are:
+GSseq - A simple sequential implementation of GS in C.
+GScuda - A simple CUDA implementation of GS. (Not finished)
+others - Code I have received from other people, used mainly as a reference/consulted for ideas.
+writings - Things I've written for the reu.
