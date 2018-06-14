@@ -6,7 +6,16 @@
 #include <stdint.h>
 int test();
 char test_frame(int n, int* male_prefs, int* female_prefs, int* correct_output); 
+// 0 if the random number generator has not been seeded, 1 otherwise
+char seeded = 0;
+void seed(){
+    if (!seeded){
+        srand(time(0));
+    }
+}
 void fill_random(int n, int* male_prefs, int* female_prefs) {
+        // seed the random number generator
+        seed();
         // fill with a random permutation
         // first fill
         for (int i = 0; i < n; i++) {
@@ -31,8 +40,6 @@ void fill_random(int n, int* male_prefs, int* female_prefs) {
         }
 }
 uint64_t* time((*alg)(int,int[][],int,int*),int n, int t);
-    // seed the random number generator
-    srand(time(0));
     uint64_t times = malloc(sizeof(uint64_t)*t);
     for (int trial = 0; trial < t; trial++) {
         // the number of males/females
@@ -62,6 +69,14 @@ uint64_t* time((*alg)(int,int[][],int,int*),int n, int t);
     return times;
     
 }
+/**
+ * n - the number of males/females
+ * male_prefs - the male preference list, where male_prefs[i][j] = k indicates that male i ranks female k jth
+ * female_prefs - the analogous female preference list where female_prefs[i][j] = k indicates that female i ranks male j kth
+ * match - a mathing where match[i] = j represents a 
+ */
+char is_stable
+
 /*
  * Unit tests 
  *
