@@ -5,9 +5,9 @@
 #include <locale.h>
 #include <stdint.h>
 int test();
-char test_frame(int n, int male_prefs[n][n], int female_prefs[n][n], int correct_output[n]); 
-void  GS(int n, int male_prefs[n][n], int female_prefs[n][n], int output[n]); 
-void  GS2(int n, int male_prefs[n][n], int female_prefs[n][n], int output[n]); 
+char test_frame(int n, int* male_prefs, int* female_prefs, int* correct_output); 
+void  GS(int n, int* male_prefs, int* female_prefs, int* output); 
+void  GS2(int n, int* male_prefs, int* female_prefs, int* output); 
 int main() {
     // test GS
     int test_result = test();
@@ -21,11 +21,11 @@ int main() {
     // seed the random number generator
     srand(time(0));
     // the number of males/females
-    const int n = 20000;
+    const int n = 10000;
     // allocate arrays
-    int (*male_prefs)[n] = malloc(sizeof(int)*n*n);
-    int (*female_prefs)[n] = malloc(sizeof(int)*n*n);
-    int *output = malloc(sizeof(int)*n);
+    int* male_prefs = (int*) malloc(sizeof(int)*n*n);
+    int* female_prefs =  (int*)malloc(sizeof(int)*n*n);
+    int* output = (int*) malloc(sizeof(int)*n);
     if (male_prefs == NULL || female_prefs == NULL) {
         printf("malloc error\n");
         return 2;
@@ -34,8 +34,8 @@ int main() {
     // first fill
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
-            male_prefs[i][j] = j;
-            female_prefs[i][j] = j;
+            male_prefs[i+n*j] = j;
+            female_prefs[i+n*j] = j;
         }
     }
     // then permute using TAOCP Vol. 2 pg. 145, algorithm P
@@ -44,19 +44,19 @@ int main() {
         for (int j = n-1;j >= 0; j--) {
             int randm = rand() % n;
             int randf = rand() % n;
-            int swapm = male_prefs[i][randm];
-            int swapf = female_prefs[i][randf];
-            male_prefs[i][randm] = male_prefs[i][j];
-            female_prefs[i][randf] = female_prefs[i][j];
-            male_prefs[i][j] = swapm;
-            female_prefs[i][j] = swapf;
+            int swapm = male_prefs[i+n*randm];
+            int swapf = female_prefs[i+n*randf];
+            male_prefs[i+n*randm] = male_prefs[i+n*j];
+            female_prefs[i+n*randf] = female_prefs[i+n*j];
+            male_prefs[i+n*j] = swapm;
+            female_prefs[i+n*j] = swapf;
         }
     }
 
     // from https://www.cs.rutgers.edu/~pxk/416/notes/c-tutorials/gettime.html
     struct timespec start, end;
     clock_gettime(CLOCK_MONOTONIC, &start);	
-    GS2(n,male_prefs,female_prefs,output);
+    GS(n,male_prefs,female_prefs,output);
 	clock_gettime(CLOCK_MONOTONIC, &end);	
 	uint64_t diff = (1000000000L) * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec;
     setlocale(LC_NUMERIC, "");
@@ -75,19 +75,19 @@ int test() {
    int m1[3][3] = { { 0, 1, 2}, {0, 1, 2},{ 0, 1, 2}};
    int f1[3][3] = { { 0, 1, 2}, {0, 1, 2},{ 0, 1, 2}};
    int correct1[3] = {0,1,2};
-   if (test_frame(3,m1,f1,correct1))
+   if (test_frame(3,(int*)m1,(int*)f1,(int*)correct1))
        return 1;
    // test 2
    int m2[3][3] = { { 2, 1, 0}, {1, 0, 2},{ 0, 2, 1}};
    int f2[3][3] = { { 2, 1, 0}, {1, 0, 2},{ 0, 2, 1}};
    int correct2[3] = {2,1,0};
-   if (test_frame(3,m2,f2,correct2))
+   if (test_frame(3,(int*)m2,(int*)f2,(int*)correct2))
        return 2;
    // test 2
    int m3[3][3] = { { 2, 0, 1}, {0, 1, 2},{ 0, 1, 2}};
    int f3[3][3] = { { 1, 0, 2}, {2, 0, 1},{ 1, 2, 0}};
    int correct3[3] = {1,2,0};
-   if (test_frame(3,m3,f3,correct3))
+   if (test_frame(3,(int*)m3,(int*)f3,(int*)correct3))
        return 3;
    return 0;
 }
@@ -95,8 +95,8 @@ int test() {
  * testing framework
  * returns: 0 if correct_output is equal to the output and 1 otherwise
  */
-char test_frame(int n, int male_prefs[n][n], int female_prefs[n][n], int correct_output[n]) {
-    int* test_output = malloc(sizeof(int)*n);
+char test_frame(int n, int* male_prefs, int* female_prefs, int* correct_output) {
+    int* test_output = (int*) malloc(sizeof(int)*n);
     GS(n,male_prefs,female_prefs, test_output);
     char to_return = 0;
     for (int i = 0; i < n; i++) {
@@ -120,7 +120,7 @@ typedef struct {
 
 /* 
  * Find a stable matching 
- * Strategy 1: flips female preferences
+ * Strategy 1: flips female preferences, with profiling
  * Params:
  * n - The number of males/females
  * male_prefs - An nxn array of ints representing where male_pref[i][j] = k  
@@ -132,17 +132,17 @@ typedef struct {
  *         that female i is matched with male j.
  *
  */
-void  GS(int n, int male_prefs[n][n], int female_prefs[n][n], int output[n]) {
+void  GS(int n, int* male_prefs, int* female_prefs, int* output) {
     // 0 if an output slot has not yet been initialized
-    char* output_used = calloc(sizeof(char),n);
+    char* output_used = (char*) calloc(sizeof(char),n);
     // flip female prefs for easy access
     // where all the men are in their proposal lists
-    man_info* state = calloc(n,sizeof(man_info));
-    int (*fast_female)[n]= malloc(sizeof(int)*n*n);
+    man_info* state = (man_info*) calloc(n,sizeof(man_info));
+    int* fast_female= (int*) malloc(sizeof(int)*n*n);
     for (int f = 0; f < n; f++) {
        for (int r = 0; r < n; r++) {
-            int m = female_prefs[f][r];
-            fast_female[f][m] = r;
+            int m = female_prefs[f+n*r];
+            fast_female[f+n*m] = r;
        }
     } 
    
@@ -152,11 +152,11 @@ void  GS(int n, int male_prefs[n][n], int female_prefs[n][n], int output[n]) {
         all_matched = 1;
         for (int i = 0; i < n; i++) {
             if (!state[i].is_dating) {
-                int next_female = male_prefs[i][state[i].proposal_index++];
+                int next_female = male_prefs[i+n*(state[i].proposal_index++)];
                 all_matched = 0;
                 // propose
                 if (!output_used[next_female] 
-                        || fast_female[next_female][output[next_female]] > fast_female[next_female][i]) {
+                        || fast_female[next_female+n*output[next_female]] > fast_female[next_female+n*i]) {
                    output_used[next_female] = 1;
 
                    output[next_female] = i;
@@ -183,9 +183,9 @@ typedef struct {
 /*
  * Given a female and a male find how the female ranks the male.
  */
-int search_prefs(int n, int male, int female, int female_prefs[n][n]) {
+int search_prefs(int n, int male, int female, int* female_prefs) {
     for (int i = 0; i < n; i++) {
-        if (female_prefs[female][i] == male)
+        if (female_prefs[female+n*i] == male)
             return i;
     }
     fprintf(stderr, "SEARCH ERROR\n");
@@ -205,12 +205,12 @@ int search_prefs(int n, int male, int female, int female_prefs[n][n]) {
  *         that female i is matched with male j.
  *
  */
-void  GS2(int n, int male_prefs[n][n], int female_prefs[n][n], int output[n]) {
+void  GS2(int n, int* male_prefs, int* female_prefs, int* output) {
     // 0 if an output slot has not yet been initialized
-    char* output_used = calloc(sizeof(char),n);
+    char* output_used = (char*)calloc(sizeof(char),n);
     // flip female prefs for easy access
     // where all the men are in their proposal lists
-    man_info2* state = calloc(n,sizeof(man_info2));
+    man_info2* state = (man_info2*)calloc(n,sizeof(man_info2));
    
     // false if any man is still unmatched
     int all_matched = 0;
@@ -218,7 +218,7 @@ void  GS2(int n, int male_prefs[n][n], int female_prefs[n][n], int output[n]) {
         all_matched = 1;
         for (int i = 0; i < n; i++) {
             if (!state[i].is_dating) {
-                int next_female = male_prefs[i][state[i].proposal_index++];
+                int next_female = male_prefs[i+n*(state[i].proposal_index++)];
                 all_matched = 0;
 
                 // the rank of the current man in the female's eyes
@@ -240,10 +240,3 @@ void  GS2(int n, int male_prefs[n][n], int female_prefs[n][n], int output[n]) {
     free(state);
     free(output_used);
 }
-
-
-                        
-
-
-
-

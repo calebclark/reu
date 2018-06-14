@@ -5,9 +5,9 @@
 #include <locale.h>
 #include <stdint.h>
 int test();
-char test_frame(int n, int male_prefs[n][n], int female_prefs[n][n], int correct_output[n]); 
-void  GS(int n, int male_prefs[n][n], int female_prefs[n][n], int output[n]); 
-void  GS2(int n, int male_prefs[n][n], int female_prefs[n][n], int output[n]); 
+char test_frame(int n, int* male_prefs, int* female_prefs, int* correct_output); 
+void  GS(int n, int* male_prefs, int* female_prefs, int* output); 
+void  GS2(int n, int* male_prefs, int* female_prefs, int* output); 
 int main() {
     // test GS
     int test_result = test();
@@ -23,8 +23,8 @@ int main() {
     // the number of males/females
     const int n = 20000;
     // allocate arrays
-    int (*male_prefs)[n] = malloc(sizeof(int)*n*n);
-    int (*female_prefs)[n] = malloc(sizeof(int)*n*n);
+    int male_prefs[][n] = (int[][n]) malloc(sizeof(int)*n*n);
+    int female_prefs[][n] = malloc(sizeof(int)*n*n);
     int *output = malloc(sizeof(int)*n);
     if (male_prefs == NULL || female_prefs == NULL) {
         printf("malloc error\n");
