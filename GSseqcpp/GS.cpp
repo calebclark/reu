@@ -21,7 +21,7 @@ int main() {
     // seed the random number generator
     srand(time(0));
     // the number of males/females
-    const int n = 10000;
+    const int n = 20000;
     // allocate arrays
     int* male_prefs = (int*) malloc(sizeof(int)*n*n);
     int* female_prefs =  (int*)malloc(sizeof(int)*n*n);
@@ -34,8 +34,8 @@ int main() {
     // first fill
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
-            male_prefs[i+n*j] = j;
-            female_prefs[i+n*j] = j;
+            male_prefs[i*n+j] = j;
+            female_prefs[i*n+j] = j;
         }
     }
     // then permute using TAOCP Vol. 2 pg. 145, algorithm P
@@ -44,12 +44,12 @@ int main() {
         for (int j = n-1;j >= 0; j--) {
             int randm = rand() % n;
             int randf = rand() % n;
-            int swapm = male_prefs[i+n*randm];
-            int swapf = female_prefs[i+n*randf];
-            male_prefs[i+n*randm] = male_prefs[i+n*j];
-            female_prefs[i+n*randf] = female_prefs[i+n*j];
-            male_prefs[i+n*j] = swapm;
-            female_prefs[i+n*j] = swapf;
+            int swapm = male_prefs[i*n+randm];
+            int swapf = female_prefs[i*n+randf];
+            male_prefs[i*n+randm] = male_prefs[i*n+j];
+            female_prefs[i*n+randf] = female_prefs[i*n+j];
+            male_prefs[i*n+j] = swapm;
+            female_prefs[i*n+j] = swapf;
         }
     }
 
@@ -141,8 +141,8 @@ void  GS(int n, int* male_prefs, int* female_prefs, int* output) {
     int* fast_female= (int*) malloc(sizeof(int)*n*n);
     for (int f = 0; f < n; f++) {
        for (int r = 0; r < n; r++) {
-            int m = female_prefs[f+n*r];
-            fast_female[f+n*m] = r;
+            int m = female_prefs[f*n+r];
+            fast_female[f*n+m] = r;
        }
     } 
    
@@ -152,11 +152,11 @@ void  GS(int n, int* male_prefs, int* female_prefs, int* output) {
         all_matched = 1;
         for (int i = 0; i < n; i++) {
             if (!state[i].is_dating) {
-                int next_female = male_prefs[i+n*(state[i].proposal_index++)];
+                int next_female = male_prefs[i*n+(state[i].proposal_index++)];
                 all_matched = 0;
                 // propose
                 if (!output_used[next_female] 
-                        || fast_female[next_female+n*output[next_female]] > fast_female[next_female+n*i]) {
+                        || fast_female[next_female*n+output[next_female]] > fast_female[next_female*n+i]) {
                    output_used[next_female] = 1;
 
                    output[next_female] = i;
@@ -185,7 +185,7 @@ typedef struct {
  */
 int search_prefs(int n, int male, int female, int* female_prefs) {
     for (int i = 0; i < n; i++) {
-        if (female_prefs[female+n*i] == male)
+        if (female_prefs[female*n+i] == male)
             return i;
     }
     fprintf(stderr, "SEARCH ERROR\n");
@@ -218,7 +218,7 @@ void  GS2(int n, int* male_prefs, int* female_prefs, int* output) {
         all_matched = 1;
         for (int i = 0; i < n; i++) {
             if (!state[i].is_dating) {
-                int next_female = male_prefs[i+n*(state[i].proposal_index++)];
+                int next_female = male_prefs[i*n+(state[i].proposal_index++)];
                 all_matched = 0;
 
                 // the rank of the current man in the female's eyes
