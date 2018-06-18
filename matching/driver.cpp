@@ -3,11 +3,20 @@
 #include "tests.h"
 
 int main() {
-    if (test_matcher(&GS)) {
-       printf("GS (and the testing framework) works"); 
+    int t =test_matcher(&GS); 
+    if (!t) {
+       printf("GS (and the testing framework) works\n"); 
     }
     else {
-       printf("fail");
+       printf("failed test %d",t);
     }
+
+    t =test_matcher(&trivial); 
+    if (!t) {
+        printf("trivial did not pass\n");
+    } else {
+        printf("trivial passed\n");
+    }
+    
 
 }

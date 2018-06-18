@@ -9,7 +9,6 @@
 #include "tests.h"
 #include <random>
 #define TEST_MAX 4
-using namespace std;
 int test();
 // 0 if the random number generator has not been seeded, 1 otherwise
 char seeded = 0;
@@ -117,7 +116,7 @@ int test_matcher(void (*alg)(int,int*,int*,int*)) {
    int* all_perms;
    // all permutations of 0..n-2
    int* all_perms_old = NULL;
-   for (int n = 1; n < TEST_MAX; n++) {
+   for (int n = 1; n <= TEST_MAX; n++) {
        nfactorial_old = nfactorial;
        nfactorial = n*nfactorial;
        all_perms = (int*)malloc(sizeof(int)*nfactorial*n);
@@ -135,6 +134,11 @@ int test_matcher(void (*alg)(int,int*,int*,int*)) {
        int* output = (int*) malloc(sizeof(int)*n);
        // the prefence permutation each male/female is organized males 0..n-1 then females 0..n-1
        int* perm= (int*) malloc(sizeof(int)*n*2);
+       //initialize 
+       for (int i = 0; i < n*2;i++) {
+           perm[i] = 0;
+           memcpy(prefs+i*n, all_perms,sizeof(int)*n);
+       }
        // test on all possible preferences
        bool done = false;
        while (!done) {
@@ -146,9 +150,9 @@ int test_matcher(void (*alg)(int,int*,int*,int*)) {
            // move to the next permutation
            int curr = 0;
            perm[curr]++;
-           while (perm[curr] == n-1) {
+           while (perm[curr] == n) {
                perm[curr] = 0;
-               memcpy(prefs+curr*n, all_perms+perm[curr]*n,n);
+               memcpy(prefs+curr*n, all_perms+perm[curr]*n,sizeof(int)*n);
                curr++;
                if (curr == 2*n) {
                    done = true;
@@ -159,8 +163,7 @@ int test_matcher(void (*alg)(int,int*,int*,int*)) {
        }
 
        all_perms_old = all_perms; 
-       free(male_prefs);
-       free(female_prefs);
+       free(prefs);
        free(output);
        free(perm);
    }

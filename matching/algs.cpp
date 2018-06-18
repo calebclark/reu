@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <locale.h>
 #include <stdint.h>
+#include <random>
 #include "algs.h"
 typedef struct {
     // index into proposal array
@@ -17,7 +18,7 @@ typedef struct {
  */
 void  GS(int n, int* male_prefs, int* female_prefs, int* output) {
     // 0 if an output slot has not yet been initialized
-    char* output_used = (char*) calloc(sizeof(char),n);
+    uint8_t* output_used = (uint8_t*) calloc(sizeof(uint8_t),n);
     // flip female prefs for easy access
     // where all the men are in their proposal lists
     man_info* state = (man_info*) calloc(n,sizeof(man_info));
@@ -41,6 +42,13 @@ void  GS(int n, int* male_prefs, int* female_prefs, int* output) {
         }
     }
     free(state);
-    free(female_prefs);
     free(output_used);
+}
+/*
+ * Builds the trivial matching (male 1 with female 1 etc...) usually not stable
+ */
+void trivial(int n,__attribute__((unused)) int* male_prefs,__attribute__((unused)) int* female_prefs,int* output) { 
+    for (int i = 0; i < n; i++) {
+        output[i] = i;
+    }
 }
