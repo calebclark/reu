@@ -18,6 +18,7 @@ int test_matcher(void (*alg)(int,int*,int*,int*));
  * t - the number of trials to run
  * returns an array of size t with the runtime of each trial in nano seconds 
  */
-uint64_t * time_matcher(void (*alg)(int,int*,int*,int*),int n, int t);
+long long unsigned int* time_matcher(void (*alg)(int,int*,int*,int*),int n, int t);
+
 
 #endif

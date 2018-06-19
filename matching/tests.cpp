@@ -43,8 +43,8 @@ void fill_random(int n, int* male_prefs, int* female_prefs) {
             }
         }
 }
-uint64_t* time_matcher(void (*alg)(int,int*,int*,int*),int n, int t){
-    uint64_t* times = (uint64_t*) calloc(sizeof(uint64_t),t);
+long long unsigned int* time_matcher(void (*alg)(int,int*,int*,int*),int n, int t){
+    long long unsigned int* times = (long long unsigned int*) calloc(sizeof(long long unsigned int),t);
     for (int trial = 0; trial < t; trial++) {
         // allocate arrays
         int* male_prefs = (int*) malloc(sizeof(int)*n*n);
@@ -60,13 +60,11 @@ uint64_t* time_matcher(void (*alg)(int,int*,int*,int*),int n, int t){
         clock_gettime(CLOCK_MONOTONIC, &start);	
         alg(n,male_prefs,female_prefs,output);
         clock_gettime(CLOCK_MONOTONIC, &end);	
-        uint64_t diff = (1000000000L) * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec;
-        setlocale(LC_NUMERIC, "");
-        printf("elapsed time = %'llu nanoseconds\n", (long long unsigned int) diff);
+        long long unsigned int diff = (1000000000L) * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec;
+        times[trial] = diff;
         free(male_prefs);
         free(female_prefs);
         free(output);
-        times[t] = diff;
     }
     return times;
     
