@@ -1,5 +1,5 @@
 CPPFLAGS= -std=c++11 -lrt -O3 -Wall -Wextra  
-#CPPFLAGS= -std=c++11 -ggdb -Wall -Wextra 
+#CPPFLAGS= -std=c++11 -D DEBUG -ggdb -Wall -Wextra 
 NVCCFLAGS=-std=c++11 -c -arch=sm_61 -c GScuda.cu 
  
 

@@ -17,39 +17,42 @@ void seed(){
         srand(time(0));
     }
 }
-void fill_random(int n, int* male_prefs, int* female_prefs) {
+void fill_random(uint8_t n, uint8_t* male_prefs, uint8_t* female_prefs) {
         // seed the random number generator
         seed();
         // fill with a random permutation
         // first fill
-        for (int i = 0; i < n; i++) {
-            for (int j = 0; j < n; j++) {
+        for (uint8_t i = 0; i < n; i++) {
+            for (uint8_t j = 0; j < n; j++) {
                 male_prefs[i*n+j] = j;
                 female_prefs[i*n+j] = j;
             }
         }
         // then permute using TAOCP Vol. 2 pg. 145, algorithm P
         // TODO generate random numbers better
-        for (int i = 0; i < n; i++) {
-            for (int j = n-1;j >= 0; j--) {
-                int randm = rand() % n;
-                int randf = rand() % n;
-                int swapm = male_prefs[i*n+randm];
-                int swapf = female_prefs[i*n+randf];
+        for (uint8_t i = 0; i < n; i++) {
+            // guard need to be at the bottom since it's unsigned so we can't go below 0
+            for (uint8_t j = n-1;; j--) {
+                uint8_t randm = rand() % n;
+                uint8_t randf = rand() % n;
+                uint8_t swapm = male_prefs[i*n+randm];
+                uint8_t swapf = female_prefs[i*n+randf];
                 male_prefs[i*n+randm] = male_prefs[i*n+j];
                 female_prefs[i*n+randf] = female_prefs[i*n+j];
                 male_prefs[i*n+j] = swapm;
                 female_prefs[i*n+j] = swapf;
+                if (j == 0) 
+                    break;
             }
         }
 }
-long long unsigned int* time_matcher(void (*alg)(int,int*,int*,int*),int n, int t){
+long long unsigned int* time_matcher(void (*alg)(uint8_t,uint8_t*,uint8_t*,uint8_t*),uint8_t n, int t){
     long long unsigned int* times = (long long unsigned int*) calloc(sizeof(long long unsigned int),t);
     for (int trial = 0; trial < t; trial++) {
         // allocate arrays
-        int* male_prefs = (int*) malloc(sizeof(int)*n*n);
-        int* female_prefs = (int*)malloc(sizeof(int)*n*n);
-        int* output = (int*) malloc(sizeof(int)*n);
+        uint8_t* male_prefs = (uint8_t*) malloc(sizeof(uint8_t)*n*n);
+        uint8_t* female_prefs = (uint8_t*)malloc(sizeof(uint8_t)*n*n);
+        uint8_t* output = (uint8_t*) malloc(sizeof(uint8_t)*n);
         if (male_prefs == NULL || female_prefs == NULL) {
             printf("malloc error\n");
             return times;
@@ -77,14 +80,14 @@ long long unsigned int* time_matcher(void (*alg)(int,int*,int*,int*),int n, int 
  * match - a mathing where match[i] = j represents a that female i is paired with male j
  * returns true if the match is stable and false otherwise 
  */
-bool is_stable(int n, int* male_prefs, int* female_prefs, int* match) {
+bool is_stable(uint8_t n, uint8_t* male_prefs, uint8_t* female_prefs, uint8_t* match) {
 
     
-    for (int i = 0; i < n; i++) {
+    for (uint8_t i = 0; i < n; i++) {
         // check if the male in the ith match pair prefers anyone to his first match, and return 0 if they prefer him
-        int male = match[i];
-        for (int j = 0; j < n; j++) {
-            int female = male_prefs[male*n+j];
+        uint8_t male = match[i];
+        for (uint8_t j = 0; j < n; j++) {
+            uint8_t female = male_prefs[male*n+j];
             // we have reached his current spouse
             if (female == i){
                 break;
@@ -99,23 +102,36 @@ bool is_stable(int n, int* male_prefs, int* female_prefs, int* match) {
     }
     return true;
 }
+// make sure output is filled correctly
+bool is_filled(uint8_t n, uint8_t* match) {
+    // does it contain the variables it should
+    bool contains[n];
+    for (int i = 0; i < n; i++)
+        contains[i] = 0;
+    for (int i = 0; i < n;i++) {
+        if (match[i] > n || contains[match[i]])
+            return false;
+        contains[match[i]] = true;
+    }
+    return true;
+}
 /**
  * given an array of all permutations of integer 0,1, ..., n-2, returns an array of all permutations of integers
  * 0,1,...,n-1
  */ 
-int* generate_next_perm(int n, int nfactorial, int nfactorial_old, int* all_perms_old) {
+uint8_t* generate_next_perm(uint8_t n, uint8_t nfactorial, uint8_t nfactorial_old, uint8_t* all_perms_old) {
 #ifdef FALSE//DEBUG
        printf("Permutations for n=%d, nfactorial=%d, nfactorial_old=%d\n",n,nfactorial,nfactorial_old);
 #endif
-       int* all_perms = (int*)malloc(sizeof(int)*nfactorial*n);
+       uint8_t* all_perms = (uint8_t*)malloc(sizeof(uint8_t)*nfactorial*n);
        if (all_perms==NULL) {
            fprintf(stderr, "Malloc error in generate_next_perm: n=%d, nfactorial=%d\n",n,nfactorial);
            exit(1);
        }
-       for (int i = 0; i < nfactorial_old; i++) {
-           for (int j = 0; j < n; j++){
+       for (uint8_t i = 0; i < nfactorial_old; i++) {
+           for (uint8_t j = 0; j < n; j++){
                // copy all the number over, skipping spot j
-               for (int k_old = 0,k_new = 0; k_new < n; k_old++,k_new++) {
+               for (uint8_t k_old = 0,k_new = 0; k_new < n; k_old++,k_new++) {
                    if (k_new==j){
                        k_new++;
                        all_perms[i*n*n + j*n+j] = n-1;
@@ -126,7 +142,7 @@ int* generate_next_perm(int n, int nfactorial, int nfactorial_old, int* all_perm
                }
 
 #ifdef FALSE //DEBUG
-               for (int k = 0; k < n; k++) {
+               for (uint8_t k = 0; k < n; k++) {
                    printf("%d ",all_perms[i*n*n+j*n+k]); 
                }
                printf("\n");
@@ -141,17 +157,17 @@ int* generate_next_perm(int n, int nfactorial, int nfactorial_old, int* all_perm
  *
  * returns: 0 if all tests pass, and the number of the test that failed otherwise 
  */
-int test_matcher(void (*alg)(int,int*,int*,int*)) {
+int test_matcher(void (*alg)(uint8_t,uint8_t*,uint8_t*,uint8_t*)) {
    int test_num = 0;
    // tests all possible preferences list for matrices up to size TEST_MAX
-   int nfactorial = 1;
-   int nfactorial_old = 0;
+   uint8_t nfactorial = 1;
+   uint8_t nfactorial_old = 0;
    // all permutations of 0..n-1
-   int* all_perms;
+   uint8_t* all_perms;
    // all permutations of 0..n-2
-   int* all_perms_old = (int*) malloc(sizeof(int));
+   uint8_t* all_perms_old = (uint8_t*) malloc(sizeof(uint8_t));
    all_perms_old[0] = 0;
-   for (int n = 1; n <= TEST_MAX; n++) {
+   for (uint8_t n = 1; n <= TEST_MAX; n++) {
 #ifdef DEBUG
        printf("starting tests with n=%d\n",n);
 #endif
@@ -161,16 +177,16 @@ int test_matcher(void (*alg)(int,int*,int*,int*)) {
        all_perms = generate_next_perm(n,nfactorial,nfactorial_old,all_perms_old);
        free(all_perms_old);
        // set up lists 
-       int* prefs= (int*) malloc(sizeof(int)*n*n*2);
-       int* male_prefs = prefs;
-       int* female_prefs = prefs + n*n;
-       int* output = (int*) malloc(sizeof(int)*n);
+       uint8_t* prefs= (uint8_t*) malloc(sizeof(uint8_t)*n*n*2);
+       uint8_t* male_prefs = prefs;
+       uint8_t* female_prefs = prefs + n*n;
+       uint8_t* output = (uint8_t*) malloc(sizeof(uint8_t)*n);
        // the prefence permutation each male/female is organized males 0..n-1 then females 0..n-1
-       int* perm= (int*) malloc(sizeof(int)*n*2);
+       uint8_t* perm= (uint8_t*) malloc(sizeof(uint8_t)*n*2);
        //initialize 
-       for (int i = 0; i < n*2;i++) {
+       for (uint8_t i = 0; i < n*2;i++) {
            perm[i] = 0;
-           memcpy(prefs+i*n, all_perms,sizeof(int)*n);
+           memcpy(prefs+i*n, all_perms,sizeof(uint8_t)*n);
        }
        // test on all possible preferences
        bool done = false;
@@ -180,15 +196,15 @@ int test_matcher(void (*alg)(int,int*,int*,int*)) {
            printf("running test %d\n",test_num);
 #endif
            alg(n,male_prefs,female_prefs,output);
-           if (!is_stable(n,male_prefs,female_prefs,output)) {
+           if (!is_filled(n,output) || !is_stable(n,male_prefs,female_prefs,output)) {
                return test_num;
            }
            // move to the next permutation
-           int curr = 0;
+           uint8_t curr = 0;
            perm[curr]++;
            while (perm[curr] == nfactorial) {
                perm[curr] = 0;
-               memcpy(prefs+curr*n, all_perms+perm[curr]*n,sizeof(int)*n);
+               memcpy(prefs+curr*n, all_perms+perm[curr]*n,sizeof(uint8_t)*n);
                curr++;
                if (curr == 2*n) {
                    done = true;
@@ -197,7 +213,7 @@ int test_matcher(void (*alg)(int,int*,int*,int*)) {
                perm[curr]++;
            }
            if (!done)
-               memcpy(prefs+curr*n, all_perms+perm[curr]*n,sizeof(int)*n);
+               memcpy(prefs+curr*n, all_perms+perm[curr]*n,sizeof(uint8_t)*n);
        }
 
        all_perms_old = all_perms; 

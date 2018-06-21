@@ -6,10 +6,11 @@
 #include <stdint.h>
 #include <random>
 #include "algs.h"
+#include <assert.h>
 typedef struct {
     // index into proposal array
     int proposal_index;
-    // 1 if currently dating (on thread), 0 if not dating
+    // 1 if currently dating/engaged , 0 if not dating
     char is_dating;
 } man_info;
 
@@ -23,24 +24,36 @@ void  GS(int n, int* male_prefs, int* female_prefs, int* output) {
     // where all the men are in their proposal lists
     man_info* state = (man_info*) calloc(n,sizeof(man_info));
     // false if any man is still unmatched
-    int all_matched = 0;
+    bool all_matched = false;
     while (!all_matched){
-        all_matched = 1;
+        // assume everyone is matched until we find out otherwise
+        all_matched = true;
         for (int i = 0; i < n; i++) {
             if (!state[i].is_dating) {
+                all_matched = false;
                 int next_female = male_prefs[i*n+(state[i].proposal_index++)];
-                all_matched = 0;
+                bool swap = false;
                 // propose
-                if (!output_used[next_female] 
-                        || female_prefs[next_female*n+output[next_female]] > female_prefs[next_female*n+i]) {
+                if (!output_used[next_female]){
+                    swap = true;
+                }
+                else if(female_prefs[next_female*n+output[next_female]] > female_prefs[next_female*n+i]) {
+                   state[output[next_female]].is_dating = 0;
+                   swap = true;
+                }
+                if (swap) {
+                   state[i].is_dating = 1;
                    output_used[next_female] = 1;
-
                    output[next_female] = i;
                    state[i].is_dating = 1;
                 }
             }
         }
     }
+#ifdef DEBUG
+    for (int i = 0; i < n; i++) 
+        assert(output_used[i]);
+#endif
     free(state);
     free(output_used);
 }
