@@ -24,13 +24,26 @@ static void CheckCudaErrorAux (const char *file, unsigned line, const char *stat
 __global__ void piiKernel(uint8_t n, uint8_t* male_prefs, uint8_t* female_prefs, uint8_t* output) {
     int idx = threadIdx.x;
     extern __shared__ int current_match[]; 
+    //local cache of male_prefs
+    uint8_t* local_mp = new uint8_t[n];
+    // 
     // initialize random number generator
-    curandState state;
-    curand_init(idx,0,0,&state);
-
-}
-
-
+    //curandState state;
+    //curand_init(idx,0,0,&state);
+    // smart initialization (random initiation is difficult and time consuming on CUDA cards)
+    //lazy initialization (my invention) O(lgn) average, O(n) worst case
+    // I'm hoping it will do better than random, but be faster to run than smart initialization
+    // permutation is usually different every time, but that's based on how things end up ordered by the device
+    //TODO consider smart initialization
+    current_match[idx] = -1; 
+    int result;
+    //TODO is it faster to truncate the loop or keep things warp optimized
+    for (int i = 0; i < n; i++) {
+        //TODO coalesce
+        local_mp[i] = male_prefs[idx*n+i]; 
+        result = atomicCAS(current_match+local_mp[i],-1, idx);
+        i++;
+    }
 #ifdef DEBUG
     if (idx == 0) {
         bool* contains = new bool[n];
@@ -50,10 +63,12 @@ __global__ void piiKernel(uint8_t n, uint8_t* male_prefs, uint8_t* female_prefs,
         delete[] contains;
     }
 #endif
+    //find NM1
+    
 
 
 
-
+    delete[] local_mp;
 }
 
 /**
