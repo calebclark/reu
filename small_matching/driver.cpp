@@ -16,7 +16,7 @@ void convergence_rate_printer(void (*alg)(uint8_t,uint8_t*,uint8_t*,uint8_t*), s
 int main() {
     convergence_rate_printer(&GS,"GS",100,1000);
     convergence_rate_printer(&trivial,"Trival",4,10000);
-    convergence_rate_printer(&pii,"pii",50,1000);
+    convergence_rate_printer(&pii,"pii",8,1000);
     //int num_tests = 0;
     //int t = test_matcher_loose(&pii,&num_tests);
 //    printf("failed %d/%d tests\n",t,num_tests);

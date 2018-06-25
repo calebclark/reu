@@ -48,6 +48,7 @@ __global__ void piiKernel(uint8_t n, uint8_t* male_prefs, uint8_t* female_prefs,
     // I'm hoping it will do better than random, but be faster to run than smart initialization
     // permutation is usually different every time, but that's based on how things end up ordered by the device
     //TODO consider smart initialization
+    // generated a random permutation on the 
     current_match[idx] = -1; 
     int result;
     int i = -1;
@@ -62,19 +63,35 @@ __global__ void piiKernel(uint8_t n, uint8_t* male_prefs, uint8_t* female_prefs,
         //TODO coalesce/cache
         int index = male_prefs[idx*n+i];
         result = atomicCAS(current_match+index,-1, idx);
+#ifdef DEBUG
+        if (result == -1)
+            printf("thread %d suceeded with i=%d, male_prefs[idx*n+i]=%d\n",idx,i,(int)male_prefs[idx*n+i]);
+        else
+            printf("thread %d failed with i=%d, male_prefs[idx*n+i]=%d\n",idx,i,(int)male_prefs[idx*n+i]);
+#endif
     } while (result != -1);
     partner = male_prefs[idx*n+i];
    
 #ifdef DEBUG
+    __syncthreads();
     if (idx == 0) {
-        bool* contains = new bool[n];
+        // bools were being weird
+        char* contains = (char*) malloc(sizeof(char)*n);
         bool bad = false;
-        for (int k = 0; k < n; k++)
+        for (int k = 0; k < n; k++) {
             contains[k] = 0;
+        }
         for (int k = 0; k < n;k++) {
-            if (current_match[k] > n || contains[current_match[k]])
+            assert(k < n);
+            int cmk=current_match[k];
+            printf("cmk=%d,",cmk);
+            
+            bool out_of_bounds= cmk >= n || cmk < 0;
+            if (out_of_bounds || contains[cmk]) {
                 bad = true;
-            contains[current_match[k]] = true;
+                break;
+            }
+            contains[current_match[k]] = 1;
             printf("%d ",current_match[k]);
         }
         if (!bad)
