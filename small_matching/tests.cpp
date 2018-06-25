@@ -10,12 +10,13 @@
 #include <random>
 #define TEST_MAX 3
 int test();
-// 0 if the random number generator has not been seeded, 1 otherwise
-char seeded = 0;
+// true if the random number generator has not been seeded, false otherwise
+bool seeded = false;
 void seed(){
     if (!seeded){
         srand(time(0));
     }
+    seeded=true;
 }
 void fill_random(uint8_t n, uint8_t* male_prefs, uint8_t* female_prefs) {
         // seed the random number generator
@@ -197,6 +198,21 @@ int test_matcher(void (*alg)(uint8_t,uint8_t*,uint8_t*,uint8_t*)) {
 #endif
            alg(n,male_prefs,female_prefs,output);
            if (!is_filled(n,output) || !is_stable(n,male_prefs,female_prefs,output)) {
+#ifdef DEBUG
+               if (!is_filled(n,output)){
+                   printf("failed because output was not filled properly\n");
+                   printf("output: ");
+                   for (int i = 0; i < n; i++) {
+                       printf("%d ",output[i]);
+                   }
+                   printf("\n");
+               }else {
+                   printf("failed because output was not stable\n");
+               }
+
+
+#endif
+
                return test_num;
            }
            // move to the next permutation
@@ -223,4 +239,114 @@ int test_matcher(void (*alg)(uint8_t,uint8_t*,uint8_t*,uint8_t*)) {
    }
    free(all_perms);  
    return 0;
+}
+//return number of tests failed
+int test_matcher_loose(void (*alg)(uint8_t,uint8_t*,uint8_t*,uint8_t*),int* num_tests) {
+   int tests_failed = 0;
+   // tests all possible preferences list for matrices up to size TEST_MAX
+   uint8_t nfactorial = 1;
+   uint8_t nfactorial_old = 0;
+   // all permutations of 0..n-1
+   uint8_t* all_perms;
+   // all permutations of 0..n-2
+   uint8_t* all_perms_old = (uint8_t*) malloc(sizeof(uint8_t));
+   all_perms_old[0] = 0;
+   for (uint8_t n = 1; n <= TEST_MAX; n++) {
+#ifdef DEBUG
+       printf("starting tests with n=%d\n",n);
+#endif
+       // update factorial calculations
+       nfactorial_old = nfactorial;
+       nfactorial = n*nfactorial;
+       all_perms = generate_next_perm(n,nfactorial,nfactorial_old,all_perms_old);
+       free(all_perms_old);
+       // set up lists 
+       uint8_t* prefs= (uint8_t*) malloc(sizeof(uint8_t)*n*n*2);
+       uint8_t* male_prefs = prefs;
+       uint8_t* female_prefs = prefs + n*n;
+       uint8_t* output = (uint8_t*) malloc(sizeof(uint8_t)*n);
+       // the prefence permutation each male/female is organized males 0..n-1 then females 0..n-1
+       uint8_t* perm= (uint8_t*) malloc(sizeof(uint8_t)*n*2);
+       //initialize 
+       for (uint8_t i = 0; i < n*2;i++) {
+           perm[i] = 0;
+           memcpy(prefs+i*n, all_perms,sizeof(uint8_t)*n);
+       }
+       // test on all possible preferences
+       bool done = false;
+       while (!done) {
+           alg(n,male_prefs,female_prefs,output);
+           (*num_tests)++;
+           if (!is_filled(n,output) || !is_stable(n,male_prefs,female_prefs,output)) {
+                   printf("output: ");
+                   for (int i = 0; i < n; i++) {
+                       printf("%d ",output[i]);
+                   }
+                   printf("\n");
+               if (!is_filled(n,output)){
+                   return -1;
+               }
+               tests_failed++;
+           }
+           // move to the next permutation
+           uint8_t curr = 0;
+           perm[curr]++;
+           while (perm[curr] == nfactorial) {
+               perm[curr] = 0;
+               memcpy(prefs+curr*n, all_perms+perm[curr]*n,sizeof(uint8_t)*n);
+               curr++;
+               if (curr == 2*n) {
+                   done = true;
+                   break;
+               }
+               perm[curr]++;
+           }
+           if (!done)
+               memcpy(prefs+curr*n, all_perms+perm[curr]*n,sizeof(uint8_t)*n);
+       }
+
+       all_perms_old = all_perms; 
+       free(prefs);
+       free(output);
+       free(perm);
+   }
+   free(all_perms);  
+   return tests_failed;
+}
+// returns the convergence rate over t random problems 
+double convergence_rate(void (*alg)(uint8_t,uint8_t*,uint8_t*,uint8_t*),uint8_t n, int t) {
+    int passed = 0;
+    for (int trial = 0; trial < t; trial++){
+        uint8_t* male_prefs = (uint8_t*) malloc(n*n*sizeof(uint8_t));
+        uint8_t* female_prefs = (uint8_t*) malloc(n*n*sizeof(uint8_t));
+        uint8_t* output = (uint8_t*) malloc(n*sizeof(uint8_t));
+        fill_random(n, male_prefs, female_prefs); 
+        alg(n,male_prefs,female_prefs,output);
+        if (is_filled(n,output) && is_stable(n,male_prefs,female_prefs,output)){
+            passed++;
+#ifdef FALSE//DEBUG
+            printf("passed\n");
+        }else{
+            printf("failed\n");
+        }
+        printf("male_prefs:\n");
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                printf("%d ", male_prefs[i*n+j]);
+            }
+            printf("\n");
+        }
+        printf("female_prefs:\n");
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                printf("%d ", female_prefs[i*n+j]);
+            }
+            printf("\n");
+#endif
+        }
+        free(male_prefs);
+        free(female_prefs);
+        free(output);
+    }
+    return ((double) passed)/t;
 }

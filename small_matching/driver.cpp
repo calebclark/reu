@@ -5,17 +5,27 @@
 #include "tests.h"
 #include "pii.h"
 using namespace std;
-#define TRIALS  1000000
-#define N  10
+#define TRIALS 1 
+#define N 150 
 bool verbose = false;
 void print_times(string name, long long unsigned int* times, int size); 
 void test_alg(void (*alg)(uint8_t,uint8_t*,uint8_t*,uint8_t*), string name, uint8_t n, int trials); 
 void time_alg(void (*alg)(uint8_t,uint8_t*,uint8_t*,uint8_t*), string name, uint8_t n, int trials); 
 void run_alg(void (*alg)(uint8_t,uint8_t*,uint8_t*,uint8_t*), string name, uint8_t n, int trials); 
+void convergence_rate_printer(void (*alg)(uint8_t,uint8_t*,uint8_t*,uint8_t*), string name, uint8_t n, int trials);
 int main() {
-    time_alg(&pii,"PII", 10,1);
-    time_alg(&GS, "Sequential GS", 100, 1);
-    time_alg(&trivial, "Trivial", 100, 1);
+    convergence_rate_printer(&GS,"GS",100,1000);
+    convergence_rate_printer(&trivial,"Trival",4,10000);
+    convergence_rate_printer(&pii,"pii",50,1000);
+    //int num_tests = 0;
+    //int t = test_matcher_loose(&pii,&num_tests);
+//    printf("failed %d/%d tests\n",t,num_tests);
+ //   time_alg(&GS, "Sequential GS", N, TRIALS);
+  //  time_alg(&trivial, "Trivial", N, TRIALS);
+}
+void convergence_rate_printer(void (*alg)(uint8_t,uint8_t*,uint8_t*,uint8_t*), string name, uint8_t n, int trials){
+    double rate = convergence_rate(alg,n,trials);
+    cout << name << " has a convergence rate of " << rate << " with n=" << (int)n << endl;
 }
 void time_alg(void (*alg)(uint8_t,uint8_t*,uint8_t*,uint8_t*), string name, uint8_t n, int trials) {
        long long unsigned int* times = time_matcher(alg, n,trials); 

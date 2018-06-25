@@ -11,6 +11,8 @@
  *       
  */
 int test_matcher(void (*alg)(uint8_t,uint8_t*,uint8_t*,uint8_t*));
+
+int test_matcher_loose(void (*alg)(uint8_t,uint8_t*,uint8_t*,uint8_t*), int* num_tests);
 /**
  * Times a stable matching algorithm on random data.
  * alg - an algorithm, with the same specification as the one described in test
@@ -20,5 +22,6 @@ int test_matcher(void (*alg)(uint8_t,uint8_t*,uint8_t*,uint8_t*));
  */
 long long unsigned int* time_matcher(void (*alg)(uint8_t,uint8_t*,uint8_t*,uint8_t*),uint8_t n, int t);
 
+double convergence_rate(void (*alg)(uint8_t,uint8_t*,uint8_t*,uint8_t*),uint8_t n, int t); 
 
 #endif
