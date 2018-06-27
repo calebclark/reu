@@ -14,13 +14,13 @@ void time_alg(void (*alg)(uint8_t,uint8_t*,uint8_t*,uint8_t*), string name, uint
 void run_alg(void (*alg)(uint8_t,uint8_t*,uint8_t*,uint8_t*), string name, uint8_t n, int trials); 
 void convergence_rate_printer(void (*alg)(uint8_t,uint8_t*,uint8_t*,uint8_t*), string name, uint8_t n, int trials);
 int main() {
-    convergence_rate_printer(&GS,"GS",100,1000);
-    convergence_rate_printer(&trivial,"Trival",4,10000);
-    convergence_rate_printer(&pii,"pii",8,1000);
+    //convergence_rate_printer(&GS,"GS",100,100000);
+ //   convergence_rate_printer(&trivial,"Trival",4,10000);
+    //convergence_rate_printer(&pii,"pii",100,100000);
     //int num_tests = 0;
     //int t = test_matcher_loose(&pii,&num_tests);
 //    printf("failed %d/%d tests\n",t,num_tests);
- //   time_alg(&GS, "Sequential GS", N, TRIALS);
+    time_alg(&GS, "Sequential GS", 1000, 1000);
   //  time_alg(&trivial, "Trivial", N, TRIALS);
 }
 void convergence_rate_printer(void (*alg)(uint8_t,uint8_t*,uint8_t*,uint8_t*), string name, uint8_t n, int trials){

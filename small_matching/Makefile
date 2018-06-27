@@ -1,7 +1,7 @@
-DEBUG=1
+#DEBUG=1
 #CPPFLAGS= -std=c++11 -lrt -O3 -Wall -Wextra -L/usr/local/cuda/lib64 -lcuda -lcudart 
 BASICCPPFLAGS= -std=c++11 -Wall -Wextra 
-BASICNVCCFLAGS=-std=c++11 -c -arch=sm_61 -I ~/cuba
+BASICNVCCFLAGS=-std=c++11 -c -arch=sm_61 -I ~/cuba 
 
 ifdef DEBUG 
 	CPPFLAGS=$(BASICCPPFLAGS) -D DEBUG -ggdb 

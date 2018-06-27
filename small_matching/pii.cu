@@ -12,6 +12,7 @@
 #include <numeric>
 #include <stdlib.h>
 #include <stdint.h>
+#include <limits.h>
 #include <curand_kernel.h>
 #include <stdio.h>
 #include <time.h>
@@ -20,142 +21,142 @@
 using namespace cub;
 // I ASSUME THROUGHOUT THAT sizeof(int) = 4
 #define CUDA_CHECK_RETURN(value) CheckCudaErrorAux(__FILE__,__LINE__, #value, value)
+
 static void CheckCudaErrorAux (const char *file, unsigned line, const char *statement, cudaError_t err);
 
 __global__ void piiKernel(uint8_t n, uint8_t* male_prefs, uint8_t* female_prefs, uint8_t* output) {
     //TODO fix shared bank conflicts
 
     int idx = threadIdx.x;
-    extern __shared__ uint8_t s[]; 
+    extern __shared__ int s[]; 
     // current_match[i] = j implies female i is matched with male j
     int* current_match = (int*) s;
+    //curent_match flipped for fast lookups so match current[j] = i implies female i is matched with male j
+    int* match_current = (int*) &current_match[n];
     // nm1[i] = j implies that female i is matched with male (j&0xFF) and female_prefs[i][j] = ((j>>24)&0xFF)
     // no need to reset every time since nm1 pairs always improve things for the woman
-    unsigned int* nm1 = (unsigned int*) (s+sizeof(int)*n);
-    // nm2graph[i*n +0] is the male in the vertical nm2 pair associated with matching pair i, or 255 if it doesn't exist
-    // nm2graph[i*n+1] is the female in the horizontal nm2 pair associated with matching pair i or 255 if it doesn't exit
-    uint8_t* nm2graph= (uint8_t*) (s+2*sizeof(int)*n);
-    uint8_t* shared_fp = (uint8_t*) (s + 2*sizeof(int)*n+2*n);
+    unsigned int* nm1 = (unsigned int*) &match_current[n];
+    // an array of three tuples of the form nm2graph[male id(row)] = (row neighbor index, female id (column),column neighbor index), indexes are 255 if null
+    // where the row (respectively column) neighbor index is the index into nm2graph of the the nm2 pair it is connected to by the matching pair in the same row as it
+    uint8_t* nm2graph= (uint8_t*) &nm1[n];
+    uint8_t* shared_fp = (uint8_t*) &nm2graph[3*n];
+    uint8_t* unstable = (uint8_t*) &shared_fp[n*n];
     //local cache of male_prefs
-    //TODO TODO TODO TODO TODO TODO fix
+    //TODO coalesce
     uint8_t* local_mp = new uint8_t[n];
-    nm1[idx] = ~0; 
-    // initialize random number generator
-    //curandState state;
-    //curand_init(idx,0,0,&state);
-    // smart initialization (random initiation is difficult and time consuming on CUDA cards)
-    //lazy initialization (my invention) O(lgn) average, O(n) worst case
-    // I'm hoping it will do better than random, but be faster to run than smart initialization
-    // permutation is usually different every time, but that's based on how things end up ordered by the device
-    //TODO consider smart initialization
-    // generated a random permutation on the 
-    current_match[idx] = -1; 
-    int result;
-    int i = -1;
-    // the women this thread is current matched to
-    uint8_t partner = 0;
-    //TODO is it faster to truncate the loop or keep things warp optimized
-    do {
-        i++;
-#ifdef DEBUG
-        assert(i < n);
-#endif
-        //TODO coalesce/cache
-        int index = male_prefs[idx*n+i];
-        result = atomicCAS(current_match+index,-1, idx);
-#ifdef DEBUG
-        if (result == -1)
-            printf("thread %d suceeded with i=%d, male_prefs[idx*n+i]=%d\n",idx,i,(int)male_prefs[idx*n+i]);
-        else
-            printf("thread %d failed with i=%d, male_prefs[idx*n+i]=%d\n",idx,i,(int)male_prefs[idx*n+i]);
-#endif
-    } while (result != -1);
-    partner = male_prefs[idx*n+i];
-   
-#ifdef DEBUG
-    __syncthreads();
-    if (idx == 0) {
-        // bools were being weird
-        char* contains = (char*) malloc(sizeof(char)*n);
-        bool bad = false;
-        for (int k = 0; k < n; k++) {
-            contains[k] = 0;
-        }
-        for (int k = 0; k < n;k++) {
-            assert(k < n);
-            int cmk=current_match[k];
-            printf("cmk=%d,",cmk);
-            
-            bool out_of_bounds= cmk >= n || cmk < 0;
-            if (out_of_bounds || contains[cmk]) {
-                bad = true;
-                break;
-            }
-            contains[current_match[k]] = 1;
-            printf("%d ",current_match[k]);
-        }
-        if (!bad)
-            printf("\npermutation is good\n");
-        else
-            printf("\npermutation is bad\n");
-        delete[] contains;
+    for (int i = 0; i < n; i++){
+        local_mp[i] = male_prefs[idx*n+i];
     }
-#endif
+    // generated a random permutation on the CPU
+    int temp_man = current_match[idx] = output[idx]; 
+    match_current[temp_man] = idx;
     //copy female prefs into swap
     //TODO optimize (may be good already)
     for (int i = 0; i < n; i++) {
         shared_fp[i*n + idx] = female_prefs[i*n + idx];
     }
     __syncthreads();
-    for (int p = 0; p > 3*n; p++) {
+    for (int p = 0; p < n; p++) {
+        __syncthreads();
+        int partner = match_current[idx]; 
         // the female partner for this male's NM1 pair
         int nm1g = -1;
+        //TODO optimize
+        unstable[0] = 0;
+        __syncthreads();
         //find NM1-generating pairs
-        for (int j  = 0; j < partner; j++){
-            if (shared_fp[local_mp[i]] < shared_fp[partner]){
-                nm1g = j;
+        for (int j  = 0; local_mp[j] != partner; j++){
+            if (shared_fp[local_mp[j]*n+idx] < shared_fp[local_mp[j]*n+current_match[local_mp[j]]]){
+                nm1g = local_mp[j];
+#ifdef DEBUG
+                printf("found nm1g pair for male %d\n",idx);
+#endif
+                unstable[0] = 1;
                 break;
             }
         }
-        int nm2gman;
-        int nm2gwoman;
+#ifdef DEBUG
+        printf("thread: %d, potential nm1g=%d\n",idx,nm1g);
+#endif
+        //TODO optimize
+        __syncthreads();
+        if (unstable[0] == 0){
+#ifdef DEBUG
+        printf("FOUND STABLE MATCHING\n");
+#endif
+            break;
+        }
         //TODO optimize?
-        nm2graph[idx*n +0] = 255;
-        nm2graph[idx*n+1] = 255;
+        nm2graph[idx*3 +0] = 255;
+        nm2graph[idx*3 +1] = 255;
+        nm2graph[idx*3+2] = 255;
         bool is_nm1 = false;
-        unsigned int  potential_nm1;
+        unsigned int  potential_nm1_construct = ~0;
+        // initialize large
+        nm1[idx] = INT_MAX;
+        __syncthreads();
         if (nm1g != -1) {
             //find NM1 pairs  
             //TODO explain
-            potential_nm1 = (female_prefs[nm1g*n+idx] << 24)|idx;
-            unsigned int old = atomicMin(nm1+nm1g, potential_nm1);
-            is_nm1 = old < potential_nm1;
-            // find nm2
-            if (is_nm1){
-                // not us
-                nm2gman = current_match[nm1g];
-                nm2gwoman = partner;
+            potential_nm1_construct = (female_prefs[nm1g*n+idx] << 24)|idx;
+            atomicMin(nm1+nm1g, potential_nm1_construct);
+        } 
+        __syncthreads();
+        is_nm1 = (potential_nm1_construct == nm1[nm1g]);
+        // find nm2
+        if (is_nm1){
                 // race condition?
-                nm2graph[idx*n+0] = nm2gman;
-                nm2graph[nm2gman*n+1] = nm2gwoman;
+                // horizontal nm2 pair 
+                nm2graph[idx*3+0] = current_match[nm1g];
+                //vertical nm2 pair
+                nm2graph[(current_match[nm1g])*3+1] = partner;
+                nm2graph[(current_match[nm1g])*3+2] = idx;
 
             }
-        } 
+#ifdef DEBUG
+                printf("thread: %d ready to sync\n",idx);
+#endif
 
         __syncthreads();
         // if we are nm1
         if (is_nm1) {
-            current_match[potential_nm1] = idx;
-            // if we are and end 
-            if (nm2graph[idx*n+1] == 255) {
-                int nm2woman = nm2gwoman;
-                // find the other end
+#ifdef DEBUG
+                printf("thread: %d, final nm1g=%d\n",idx,nm1g);
+#endif
+            current_match[nm1g] = idx;
+            match_current[idx] = nm1g;
+            // if we are a column end 
+            if (nm2graph[idx*3+2] == 255) {
+#ifdef DEBUG
+                printf("thread: %d, nm2graph[idx] = (%d,%d,%d)\n",idx,nm2graph[idx*3+0],nm2graph[idx*3+1],nm2graph[idx*3+2]);
+
+#endif
+                int nm2column = partner;
                 //TODO optimize
-                int nm2man = nm2graph[idx*n+1];
-                while(nm2graph[nm2man*n+0] != 255) {
-                    nm2man= nm2graph[nm2man*n+0];
+                int nm2row= current_match[nm1g];
+#ifdef DEBUG
+                printf("thread: %d, nm2row=%d, nm2graph[nm2row] = (%d,%d,%d)\n",idx,nm2row,nm2graph[nm2row*3+0],nm2graph[nm2row*3+1],nm2graph[nm2row*3+2]);
+#endif
+                // if it's a single pair
+                if (nm2graph[nm2row*3+0]==nm2graph[nm2row*3+2]){
+                    nm2column = nm2graph[nm2row*3+1];
                 }
-                current_match[nm2woman] = nm2man;
+                // if it's a chain
+                else {
+                    while(nm2graph[nm2row*3+0] != 255) {
+#ifdef DEBUG
+                        printf("thread: %d, nm2row=%d, nm2graph[nm2row] = (%d,%d,%d)\n",idx,nm2row,nm2graph[nm2row*3+0],nm2graph[nm2row*3+1],nm2graph[nm2row*3+2]);
+#endif
+
+                        nm2row = nm2graph[nm2row*3+0];
+                    }
+                }
+#ifdef DEBUG
+                printf("final nm2row=%d,nm2column=%d\n",nm2row,nm2column);
+#endif
+                current_match[nm2column] = nm2row;
+                match_current[nm2row] = nm2column;
+
             }
                     
 
@@ -188,16 +189,43 @@ void  pii(uint8_t n, uint8_t* male_prefs, uint8_t* female_prefs, uint8_t* output
     struct timespec start, end;
     cudaDeviceSynchronize();
     clock_gettime(CLOCK_MONOTONIC, &start);	
-    piiKernel<<<1,n,2*n*sizeof(int)+2*n*sizeof(uint8_t)+n*n*sizeof(uint8_t)>>> (n, d_male_prefs,d_female_prefs, d_output);
+    //knuth shuffle from sgb
+    for (uint8_t k = 0;k < n; k++) {
+        uint8_t j= rand() % (k+1);
+        output[k] = output[j];
+        output[j] = k;
+    }
+#ifdef DEBUG
+    printf("male_prefs: \n ");
+    for (int i = 0; i < n; i++){ 
+        for (int j = 0; j < n; j++)
+            printf("%hhd ",male_prefs[i*n+j]);
+        printf("\n ");
+    }
+    printf("female_prefs: \n ");
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++)
+            printf("%hhd ",female_prefs[i*n+j]);
+        printf("\n ");
+    }
+    printf("permutation: ");
+    for (int i = 0; i < n; i++) 
+        printf("%hhd ",output[i]);
+    printf("\n ");
+#endif
+	CUDA_CHECK_RETURN(cudaMemcpy(d_output, output, n*sizeof(uint8_t), cudaMemcpyHostToDevice));
+    piiKernel<<<1,n,n*sizeof(int)+n*sizeof(int)+n*sizeof(unsigned int) + 3*n*sizeof(uint8_t) + n*n*sizeof(uint8_t)+1>>> (n, d_male_prefs,d_female_prefs, d_output);
     cudaDeviceSynchronize();
     clock_gettime(CLOCK_MONOTONIC, &end);	
     long long unsigned int diff = (1000000000L) * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec;
-#ifdef PRINT_KERNEL_TIME
-    printf("kernel time %llu\n",diff);
-#endif 
-
-
+    //printf("kernel time %llu\n",diff);
 	CUDA_CHECK_RETURN(cudaMemcpy(output, d_output, sizeof(uint8_t)*n, cudaMemcpyDeviceToHost));
+#ifdef DEBUG
+    printf("result: ");
+    for (int i = 0; i < n; i++) 
+        printf("%hhd ",output[i]);
+    printf("\n ");
+#endif
 	CUDA_CHECK_RETURN(cudaFree(d_male_prefs));
 	CUDA_CHECK_RETURN(cudaFree(d_female_prefs));
 	CUDA_CHECK_RETURN(cudaFree(d_output));

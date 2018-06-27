@@ -34,8 +34,8 @@ void fill_random(uint8_t n, uint8_t* male_prefs, uint8_t* female_prefs) {
         for (uint8_t i = 0; i < n; i++) {
             // guard need to be at the bottom since it's unsigned so we can't go below 0
             for (uint8_t j = n-1;; j--) {
-                uint8_t randm = rand() % n;
-                uint8_t randf = rand() % n;
+                uint8_t randm = rand() % (j+1);
+                uint8_t randf = rand() % (j+1);
                 uint8_t swapm = male_prefs[i*n+randm];
                 uint8_t swapf = female_prefs[i*n+randf];
                 male_prefs[i*n+randm] = male_prefs[i*n+j];
@@ -324,7 +324,7 @@ double convergence_rate(void (*alg)(uint8_t,uint8_t*,uint8_t*,uint8_t*),uint8_t 
         alg(n,male_prefs,female_prefs,output);
         if (is_filled(n,output) && is_stable(n,male_prefs,female_prefs,output)){
             passed++;
-#ifdef FALSE//DEBUG
+#ifdef DEBUG
             printf("passed\n");
         }else{
             printf("failed\n");
