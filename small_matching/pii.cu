@@ -185,10 +185,11 @@ void  pii(uint8_t n, uint8_t* male_prefs, uint8_t* female_prefs, uint8_t* output
 	CUDA_CHECK_RETURN(cudaMemcpy(d_male_prefs, male_prefs, prefs_size, cudaMemcpyHostToDevice));
 	CUDA_CHECK_RETURN(cudaMemcpy(d_female_prefs, female_prefs, prefs_size, cudaMemcpyHostToDevice));
 
-
+#ifdef TIME_KERNEL
     struct timespec start, end;
     cudaDeviceSynchronize();
     clock_gettime(CLOCK_MONOTONIC, &start);	
+#endif
     //knuth shuffle from sgb
     for (uint8_t k = 0;k < n; k++) {
         uint8_t j= rand() % (k+1);
@@ -215,10 +216,12 @@ void  pii(uint8_t n, uint8_t* male_prefs, uint8_t* female_prefs, uint8_t* output
 #endif
 	CUDA_CHECK_RETURN(cudaMemcpy(d_output, output, n*sizeof(uint8_t), cudaMemcpyHostToDevice));
     piiKernel<<<1,n,n*sizeof(int)+n*sizeof(int)+n*sizeof(unsigned int) + 3*n*sizeof(uint8_t) + n*n*sizeof(uint8_t)+1>>> (n, d_male_prefs,d_female_prefs, d_output);
+#ifdef TIME_KERNEL
     cudaDeviceSynchronize();
     clock_gettime(CLOCK_MONOTONIC, &end);	
     long long unsigned int diff = (1000000000L) * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec;
-    //printf("kernel time %llu\n",diff);
+    printf("kernel time %llu\n",diff);
+#endif
 	CUDA_CHECK_RETURN(cudaMemcpy(output, d_output, sizeof(uint8_t)*n, cudaMemcpyDeviceToHost));
 #ifdef DEBUG
     printf("result: ");

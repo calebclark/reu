@@ -1,7 +1,7 @@
 #DEBUG=1
 #CPPFLAGS= -std=c++11 -lrt -O3 -Wall -Wextra -L/usr/local/cuda/lib64 -lcuda -lcudart 
 BASICCPPFLAGS= -std=c++11 -Wall -Wextra 
-BASICNVCCFLAGS=-std=c++11 -c -arch=sm_61 -I ~/cuba 
+BASICNVCCFLAGS=-std=c++11 -c -arch=sm_61 -I ~/cuba #-DTIME_KERNEL
 
 ifdef DEBUG 
 	CPPFLAGS=$(BASICCPPFLAGS) -D DEBUG -ggdb 
@@ -13,11 +13,12 @@ endif
 
 
 all: driver 
-driver: algs.o tests.o pii.o driver.cpp
+driver: cuda_test.o algs.o tests.o pii.o driver.cpp
 	g++ $(CPPFLAGS) -c driver.cpp
-	g++ $(CPPFLAGS) pii.o driver.o algs.o tests.o -L/usr/local/cuda/lib64 -lcuda -lcudart -o driver
+	g++ $(CPPFLAGS) cuda_test.o pii.o driver.o algs.o tests.o -L/usr/local/cuda/lib64 -lcuda -lcudart -o driver
 	
-
+cuda_test.o: cuda_test.h cuda_test.cu
+	nvcc $(NVCCFLAGS) -c cuda_test.cu
 algs.o: algs.cpp algs.h 
 	g++ $(CPPFLAGS) -c algs.cpp 
 tests.o: tests.cpp tests.h

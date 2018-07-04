@@ -4,6 +4,7 @@
 #include "algs.h"
 #include "tests.h"
 #include "pii.h"
+#include "cuda_test.h"
 using namespace std;
 #define TRIALS 1 
 #define N 150 
@@ -14,14 +15,16 @@ void time_alg(void (*alg)(uint8_t,uint8_t*,uint8_t*,uint8_t*), string name, uint
 void run_alg(void (*alg)(uint8_t,uint8_t*,uint8_t*,uint8_t*), string name, uint8_t n, int trials); 
 void convergence_rate_printer(void (*alg)(uint8_t,uint8_t*,uint8_t*,uint8_t*), string name, uint8_t n, int trials);
 int main() {
+//    for (int i = 0; i < 10000; i++)
+ //       empty_kernel();
     //convergence_rate_printer(&GS,"GS",100,100000);
  //   convergence_rate_printer(&trivial,"Trival",4,10000);
     //convergence_rate_printer(&pii,"pii",100,100000);
     //int num_tests = 0;
     //int t = test_matcher_loose(&pii,&num_tests);
 //    printf("failed %d/%d tests\n",t,num_tests);
-    time_alg(&GS, "Sequential GS", 1000, 1000);
-  //  time_alg(&trivial, "Trivial", N, TRIALS);
+    time_alg(&pii, "pii", 100, 1);
+//    time_alg(&GS, "GS", 10, 1);
 }
 void convergence_rate_printer(void (*alg)(uint8_t,uint8_t*,uint8_t*,uint8_t*), string name, uint8_t n, int trials){
     double rate = convergence_rate(alg,n,trials);
