@@ -1,10 +1,10 @@
 #DEBUG=1
-BASICCFLAGS= -Wall -Wextra 
+BASICCFLAGS= -Wall -Wextra  -std=gnu11
 
 ifdef DEBUG 
-	CFLAGS=$(BASICFLAGS) -D DEBUG -ggdb 
+	CFLAGS=$(BASICCFLAGS) -D DEBUG -ggdb 
 else
-	CFLAGS=$(BASICFLAGS) -O3 
+	CFLAGS=$(BASICCFLAGS) -O3 
 endif 
 
 
@@ -13,4 +13,5 @@ graphs: graphs.c
 	gcc $(CFLAGS) graphs.c -o graphs
 
 clean:
-	rm -f graphs *.o
+	rm -f graphs *.o *.png
+	
