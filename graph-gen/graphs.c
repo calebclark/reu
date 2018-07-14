@@ -1,4 +1,5 @@
 #include<stdint.h>
+#include<assert.h>
 #include<stdlib.h>
 #include<stdio.h>
 #include<time.h>
@@ -37,23 +38,22 @@ void printarr(int n, uint8_t* arr) {
         prefix = 1;
     }
 }
-bool is_stable(problem p, uint8_t* match) {
+void printarr4(int n, int* arr) {
+    bool prefix = false;
+    for (int i = 0; i < n; i++) {
+        if (prefix)
+            printf(",");
+        printf("%d",arr[i]);
+        prefix = true;
+    }
+}
+bool is_stable(problem p, uint8_t* match,uint8_t* reverse_match) {
     int n = p.n;
-    for (uint8_t i = 0; i < n; i++) {
-        // check if the male in the ith match pair prefers anyone to his first match, and return 0 if they prefer him
-        uint8_t male = match[i];
-        for (uint8_t j = 0; j < n; j++) {
-            uint8_t female = p.male_prefs[male*n+j];
-            // we have reached his current spouse
-            if (female == i){
-                break;
-            }
-            /* if we have made it this far we know male prefers female to his spouse we now check if female prefers male to
-             * her spouse */
-            if (p.female_prefs[female*n+male] < p.female_prefs[female*n+match[female]]) {
+    for (int m = 0; m < n; m++) {
+        for (int f = 0; f < n; f++) {
+            if (p.male_prefs[m*n+f] < p.male_prefs[m*n+match[m]]
+                    &&  p.female_prefs[f*n+m] < p.female_prefs[f*n+reverse_match[f]])
                 return false;
-            }
-
         }
     }
     return true;
@@ -167,6 +167,7 @@ uint8_t* pii(problem p, uint8_t* match, uint8_t* reverse_match, int* output_size
         // find nm1 pairs 
         for (int m = 0; m < n; m++) {
             int nm1gf = -1;
+            nm1[m] = -1;
             for (int f = 0; f < n;f++){
                 // check for blocking and male dominance 
                 if(p.male_prefs[m*n+f] < p.male_prefs[m*n+match[m]] 
@@ -176,15 +177,17 @@ uint8_t* pii(problem p, uint8_t* match, uint8_t* reverse_match, int* output_size
                     nm1gf = f;
                 }
             }
-            //check for female dominance
-            for (int i = 0; i < m; i++) {
-                if (nm1[i] == nm1gf
-                    && p.female_prefs[nm1gf*n+i] < p.female_prefs[nm1gf*n+m]) {
-                    nm1gf = -1;
-                } else if (nm1[i] == nm1gf) {
-                    nm1[i] = -1;
-                }
+            if (nm1gf != -1) {
+                //check for female dominance
+                for (int i = 0; i < m; i++) {
+                    if (nm1[i] == nm1gf
+                        && p.female_prefs[nm1gf*n+i] < p.female_prefs[nm1gf*n+m]) {
+                        nm1gf = -1;
+                    } else if (nm1[i] == nm1gf) {
+                        nm1[i] = -1;
+                    }
 
+                }
             }
             nm1[m] = nm1gf;
         }
@@ -234,6 +237,60 @@ uint8_t* pii(problem p, uint8_t* match, uint8_t* reverse_match, int* output_size
 
         return output;
 } 
+// performs all possible PII's for this match, and returns an array of size output_size*n with the resulting permutations
+uint8_t* pii2(problem p, uint8_t* match, uint8_t* reverse_match, int* output_size){
+        int n = p.n;
+        uint8_t* output = malloc(n*sizeof(uint8_t));
+        for (int i = 0; i < n; i++) {
+            output[i] = match[i];
+        }
+        int nm1[n];
+        *output_size = 0;
+        // find nm1 pairs 
+        for (int m = 0; m < n; m++) {
+            int nm1gf = -1;
+            nm1[m] = -1;
+            for (int f = 0; f < n;f++){
+                // check for blocking and male dominance 
+                if(p.male_prefs[m*n+f] < p.male_prefs[m*n+match[m]] 
+                        && p.female_prefs[f*n+m] < p.female_prefs[f*n+reverse_match[f]]
+                        && (nm1gf == -1 || p.male_prefs[m*n+f] < p.male_prefs[m*n+nm1gf])){
+                    *output_size = 1;
+                    nm1gf = f;
+                }
+            }
+            if (nm1gf != -1) {
+                //check for female dominance
+                for (int i = 0; i < m; i++) {
+                    if (nm1[i] == nm1gf
+                        && p.female_prefs[nm1gf*n+i] < p.female_prefs[nm1gf*n+m]) {
+                        nm1gf = -1;
+                    } else if (nm1[i] == nm1gf) {
+                        nm1[i] = -1;
+                    }
+
+                }
+            }
+            nm1[m] = nm1gf;
+        }
+        // quit if it's stable
+        if (!*output_size)
+            return output;
+        for (int m = 0; m < n; m++) {
+            if (nm1[m] != -1) {
+                int nm1partner = nm1[m];
+                output[m] = nm1partner;
+                if (nm1[reverse_match[nm1partner]] == -1){
+                    output[reverse_match[nm1partner]] = 255; 
+                }
+#ifdef DEBUG
+                printf("nm1 pair (%d,%d)\n", m ,nm1partner);
+#endif
+            }
+        }
+
+        return output;
+} 
 // performs all possible divorces for this match, and returns an array of size output_size*n with the resulting permutations
 uint8_t* divorce(problem p, uint8_t* match, uint8_t* reverse_match, int* output_size){
         int n = p.n;
@@ -263,19 +320,19 @@ void printDOT(problem p, uint8_t* perms,uint8_t* (*alg)(problem,uint8_t*,uint8_t
     uint8_t match[n];
     uint8_t reverse_match[n];
     for (int i = 0; i < factorial(p.n); i++) {
-        uint8_t is_stable = 1;
+        uint8_t match_stable = 1;
         for (int j = 0; j < n; j++) {
             match[j] = perms[i*n+j];
             reverse_match[perms[i*n+j]] = j;
         }
         int output_size;
         uint8_t* output = alg(p, match, reverse_match,&output_size);
-        is_stable = !output_size;
+        match_stable = !output_size;
         for (int j = 0; j < output_size; j++){
             printf("M%d -> M%d\n", i+1,1+id(n,output + j*n,perms));
         }
         free(output);
-        if (is_stable){
+        if (match_stable){
             printf("M%d [style=filled,fillcolor=darkgreen,fontcolor=white]\n",i+1);
         } else {
             printf("M%d [style=filled,fillcolor=crimson,fontcolor=white]\n",i+1);
@@ -290,14 +347,14 @@ void printpartDOT(problem p, uint8_t* perms,uint8_t* (*alg)(problem,uint8_t*,uin
     uint8_t match[n];
     uint8_t reverse_match[n];
     for (int i = 0; i < factorial(p.n); i++) {
-        uint8_t is_stable = 1;
+        uint8_t match_stable = 1;
         for (int j = 0; j < n; j++) {
             match[j] = perms[i*n+j];
             reverse_match[perms[i*n+j]] = j;
         }
         int output_size;
         uint8_t* output = alg(p, match, reverse_match,&output_size);
-        is_stable = !output_size;
+        match_stable = !output_size;
         for (int j = 0; j < output_size; j++){
             //TODO get rid of magic number
             char edge[300] = "M%d -> M%d [color=";
@@ -306,7 +363,9 @@ void printpartDOT(problem p, uint8_t* perms,uint8_t* (*alg)(problem,uint8_t*,uin
             printf(edge, i+1,1+id(n,output + j*n,perms));
         }
         free(output);
-        if (is_stable){
+        if (match_stable){
+            //TODO remove
+            assert(is_filled(p,match) && is_stable(p,match,reverse_match));
             printf("M%d [style=filled,fillcolor=darkgreen,fontcolor=white]\n",i+1);
         } else {
             printf("M%d [style=filled,fillcolor=crimson,fontcolor=white]\n",i+1);
@@ -316,10 +375,101 @@ void printpartDOT(problem p, uint8_t* perms,uint8_t* (*alg)(problem,uint8_t*,uin
     }
 }
 
-int main() {
-    int n = 4;
+bool* get_graph(problem p, uint8_t* perms,uint8_t* (*alg)(problem,uint8_t*,uint8_t*,int*)) {
+    int n = p.n;
+    int fn = factorial(n);
+    //TODO use bitvectors
+    // toReturn[i][j] = 1 means i has as link to j
+    bool* to_return = calloc(fn,fn*sizeof(bool));
+    uint8_t match[n];
+    uint8_t reverse_match[n];
+    for (int i = 0; i < factorial(p.n); i++) {
+        for (int j = 0; j < n; j++) {
+            match[j] = perms[i*n+j];
+            reverse_match[perms[i*n+j]] = j;
+        }
+        int output_size;
+        uint8_t* output = alg(p, match, reverse_match,&output_size);
+        for (int j = 0; j < output_size; j++){
+            to_return[i *fn + id(n,output,perms)] = 1; 
+        }
+        free(output);
+    }
+    return to_return;
+}
+//TODO speed up
+// in place transitive closure a of graph
+void tc(int v, bool* graph){
+    for (int repeat = 0; repeat < v; repeat++) {
+        for (int i = 0; i < v; i++){
+           for (int j = 0; j < v; j++){
+               if (graph[i*v+j]) {
+                   for (int k = 0; k < v; k++) {
+                       graph[i*v+k] |= graph[j*v+k];
+                   }
+               }
+           }  
+        }
+    }
+}
+// true if graph1 is a subgraph of graph2
+bool is_subgraph(int v, bool* graph1, bool* graph2) {
+    for (int i = 0; i < v*v; i++)
+        if (graph1[i] && !graph2[i])
+            return false;
+    return true;
+}
+void random_match(int n, uint8_t* match){
+    for (int k = 0;k < n; k++) {
+        int j= rand() % (k+1);
+        match[k] = match[j];
+        match[j] = k;
+    }
+}
+uint8_t* reverse(int n, uint8_t* match){
+    uint8_t* to_return = malloc(n*sizeof(uint8_t));
+    for (int i = 0; i < n; i++){
+        to_return[match[i]] = i;
+    }
+    return to_return;
+}
+double convergence_rate(int n, int trials, int iterations, uint8_t* (*alg)(problem,uint8_t*,uint8_t*,int*)){
     problem p;
     p.n = n;
+    int tmp_male_prefs[n][n];
+    int tmp_female_prefs[n][n];
+    p.male_prefs = (int*)tmp_male_prefs;
+    p.female_prefs = (int*)tmp_female_prefs;
+    double passed = 0;
+    for (int i = 0; i < trials; i++) {
+        fill_random(p); 
+        uint8_t* match= malloc(n*sizeof(uint8_t));
+        random_match(n,match);
+        uint8_t* reverse_match = reverse(n,match);
+        int output_size;
+        for (int j =0; j < iterations; j++){
+            uint8_t* output = alg(p,match,reverse_match,&output_size);
+            assert(output_size == 1||output_size == 0);
+            free(match);
+            free(reverse_match);
+            match = output;
+            reverse_match = reverse(n,output);
+        }
+        if(is_filled(p,match) && is_stable(p,match,reverse_match)){
+            passed++;
+        }
+        free(reverse_match);
+        free(match);
+    }
+    return passed/trials;
+}
+int main() {
+    int n = 100;
+    double percent = 100*convergence_rate(n,1000,n,&pii2);
+    printf("passed %f%% of the time\n",percent);
+    /*
+    int t = 300;
+    int n = 4;
     uint8_t* perms = generate_all_perms(n);
 #ifdef DEBUG
     for (int i = 0; i < factorial(n); i++) {
@@ -333,16 +483,32 @@ int main() {
     // male_prefs[i][j] is the rating male i give female j
     //int tmp_male_prefs[4][4] = {{0,2,1,3},{3,0,2,1},{1,3,0,2},{2,1,3,0}};
     //int tmp_female_prefs[4][4] = {{2,0,3,1},{1,2,0,3},{3,1,2,0},{0,3,1,2}};
-    int tmp_male_prefs[n][n];
-    int tmp_female_prefs[n][n];
-    p.male_prefs = (int*)tmp_male_prefs;
-    p.female_prefs = (int*)tmp_female_prefs;
-    fill_random(p); 
-    printf("digraph {\n");
-    printpartDOT(p, perms,&divorce,"black"); 
-    printpartDOT(p, perms,&pii,"orange"); 
-    printf("}\n");
+    //printf("digraph {\n");
+    //printpartDOT(p, perms,&divorce,"black"); 
+    //printpartDOT(p, perms,&pii,"orange"); 
+    //printf("}\n");
+    for (int i = 0; i < t; i++) {
+        fill_random(p); 
+        bool* g1 = get_graph(p, perms,&pii); 
+        bool* g2 = get_graph(p, perms,&divorce); 
+        tc(factorial(n),g1);
+        tc(factorial(n),g2);
+        if (!is_subgraph(factorial(n),g1,g2)) {
+            printf("male_prefs:\n");
+            for (int j = 0; j < n; j++){
+                printarr4(n,p.male_prefs+j*n);
+                printf("\n");
+            }
+            printf("female_prefs:\n");
+            for (int j = 0; j < n; j++){
+                printarr4(n,p.male_prefs+j*n);
+                printf("\n");
+            }
+        }
+
+    }
 
      
     free(perms);
+    */
 }
