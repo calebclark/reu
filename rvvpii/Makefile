@@ -1,4 +1,4 @@
-#DEBUG=1
+DEBUG=1
 BASICCFLAGS= -Wall -Wextra  -std=gnu11
 
 ifdef DEBUG 
