@@ -448,14 +448,17 @@ int main() {
     int n = 500;
     //percent = 100*convergence_rate(n,trials,iters,&pii);
     //printf("pii passed %f%% of the time\n",percent);
-    int trials = 500;
+    int trials = 7500;
+    int* out = num_iters_single(n,trials,&pii4,true);
+    printf("%d,%d\n",n,out[2]);
+    /*
     for (int i = 2; i <= n; i++){
         int* out = num_iters_single(i,trials,&pii4,true);
         printf("%d,%d\n",i,out[2]);
         if (i% 10 == 0)
             fflush(stdout);
         free(out);
-    }
+    }*/
     /*
     int* (*algs[4])(problem*,int*,int*,int*) = {&dummy,&pii2,&pii3,&pii4};
     char* names[4] = {"pii","pii2","pii3","pii4"};
