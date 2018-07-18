@@ -5,14 +5,10 @@
 #include<time.h> 
 #include<string.h>
 #include<limits.h>
+#include "algs.h"
 #define bool uint8_t
 #define true 1
 #define false 0
-typedef struct {
-    int n;
-    int* male_prefs;
-    int* female_prefs;
-} problem;
 __attribute__((const)) int factorial(uint8_t n) {
     if (n==0)
         return 1;
@@ -47,6 +43,13 @@ void printarr4(int n, int* arr) {
         printf("%d",arr[i]);
         prefix = true;
     }
+}
+problem copy_problem(problem* p){
+    problem p_copy;
+    p_copy.n = p->n;
+    p_copy.male_prefs = malloc(sizeof(int)*p->n*p->n);
+    p_copy.female_prefs = malloc(sizeof(int)*p->n*p->n);
+    return p_copy;
 }
 bool is_stable(problem* p, int* match,int* reverse_match) {
     int n = p->n;
@@ -156,260 +159,6 @@ int id(int n, int* perm,int* all_perms) {
     }
     return -1;
 }
-// performs all possible PII's for this match, and returns an array of size output_size*n with the resulting permutations
-int* pii(problem* p, int* match, int* reverse_match, int* output_size){
-        int n = p->n;
-        int* output = malloc(n*sizeof(int));
-        for (int i = 0; i < n; i++) {
-            output[i] = match[i];
-        }
-        int nm1[n];
-        *output_size = 0;
-        // find nm1 pairs 
-        for (int m = 0; m < n; m++) {
-            int nm1gf = -1;
-            nm1[m] = -1;
-            for (int f = 0; f < n;f++){
-                // check for blocking and male dominance 
-                if(p->male_prefs[m*n+f] < p->male_prefs[m*n+match[m]] 
-                        && p->female_prefs[f*n+m] < p->female_prefs[f*n+reverse_match[f]]
-                        && (nm1gf == -1 || p->male_prefs[m*n+f] < p->male_prefs[m*n+nm1gf])){
-                    *output_size = 1;
-                    nm1gf = f;
-                }
-            }
-            if (nm1gf != -1) {
-                //check for female dominance
-                for (int i = 0; i < m; i++) {
-                    if (nm1[i] == nm1gf
-                        && p->female_prefs[nm1gf*n+i] < p->female_prefs[nm1gf*n+m]) {
-                        nm1gf = -1;
-                        break;
-                    } else if (nm1[i] == nm1gf) {
-                        nm1[i] = -1;
-                    }
-
-                }
-            }
-            nm1[m] = nm1gf;
-        }
-        // quit if it's stable
-        if (!*output_size)
-            return output;
-        // find nm2g pairs
-        // nm2g[male id(row)] (row neighbor index, female id(column), column neighbor index)
-        int nm2g[n][3];
-        for (int i = 0; i < n; i++){
-            nm2g[i][0] = -1;
-            nm2g[i][2] = -1;
-        }
-        for (int m = 0; m < n; m++) {
-            if (nm1[m] != -1) {
-                int partner = match[m];
-                int nm1partner = nm1[m];
-                output[m] = nm1partner;
-                nm2g[m][0] = reverse_match[nm1partner];
-                nm2g[reverse_match[nm1partner]][1] = partner;
-                nm2g[reverse_match[nm1partner]][2] = m;
-            }
-        }
-        for (int m = 0; m < n; m++) {
-            if (nm1[m] != -1) {
-                if (nm2g[m][2] == -1) {
-                    int nm2column = match[m];
-                    int nm2row = reverse_match[nm1[m]];
-                    if (nm2g[nm2row][0]!=nm2g[nm2row][2]){
-                        while (nm2g[nm2row][0] != -1) {
-                            nm2row = nm2g[nm2row][0];
-                        }
-                    }
-                    output[nm2row] = nm2column;
-                } 
-            }
-        }
-
-        return output;
-} 
-// performs all possible PII's for this match, and returns an array of size output_size*n with the resulting permutations
-int* pii2(problem* p, int* match, int* reverse_match, int* output_size){
-        int n = p->n;
-        int* output = malloc(n*sizeof(int));
-        for (int i = 0; i < n; i++) {
-            output[i] = match[i];
-        }
-        int nm1[n];
-        *output_size = 0;
-        // find nm1 pairs 
-        for (int m = 0; m < n; m++) {
-            int nm1gf = -1;
-            nm1[m] = -1;
-            for (int f = 0; f < n;f++){
-                // check for blocking and male dominance 
-                if(     (match[m] == -1 ||p->male_prefs[m*n+f] < p->male_prefs[m*n+match[m]]) 
-                        && (reverse_match[f]==-1 || p->female_prefs[f*n+m] < p->female_prefs[f*n+reverse_match[f]])
-                        && (nm1gf == -1 || p->male_prefs[m*n+f] < p->male_prefs[m*n+nm1gf])){
-                    *output_size = 1;
-                    nm1gf = f;
-                }
-            }
-            if (nm1gf != -1) {
-                //check for female dominance
-                for (int i = 0; i < m; i++) {
-                    if (nm1[i] == nm1gf
-                        && p->female_prefs[nm1gf*n+i] < p->female_prefs[nm1gf*n+m]) {
-                        nm1gf = -1;
-                        break;
-                    } else if (nm1[i] == nm1gf) {
-                        nm1[i] = -1;
-                    }
-
-                }
-            }
-            nm1[m] = nm1gf;
-        }
-        // quit if it's stable
-        if (!*output_size)
-            return output;
-        for (int m = 0; m < n; m++) {
-            if (nm1[m] != -1) {
-                int nm1partner = nm1[m];
-                output[m] = nm1partner;
-                if (reverse_match[nm1partner] != -1 && nm1[reverse_match[nm1partner]] == -1){
-                    output[reverse_match[nm1partner]] = -1; 
-                }
-            }
-        }
-
-        return output;
-} 
-int* pii3(problem* p, int* match, int* reverse_match, int* output_size){
-        int n = p->n;
-        int* output = malloc(n*sizeof(int));
-        for (int i = 0; i < n; i++) {
-            output[i] = match[i];
-        }
-        int nm1[n];
-        *output_size = 0;
-        // find nm1 pairs 
-        for (int m = 0; m < n; m++) {
-            int nm1gf = -1;
-            nm1[m] = -1;
-            for (int f = 0; f < n;f++){
-                // check for blocking and male dominance 
-                if(     (match[m] == -1 ||p->male_prefs[m*n+f] < p->male_prefs[m*n+match[m]]) 
-                        && (reverse_match[f]==-1 || p->female_prefs[f*n+m] < p->female_prefs[f*n+reverse_match[f]])
-                        && (nm1gf == -1 || p->male_prefs[m*n+f] < p->male_prefs[m*n+nm1gf])){
-                    *output_size = 1;
-                    nm1gf = f;
-                }
-            }
-            if (nm1gf != -1) {
-                //check for female dominance
-                for (int i = 0; i < m; i++) {
-                    if (nm1[i] == nm1gf
-                        && p->female_prefs[nm1gf*n+i] < p->female_prefs[nm1gf*n+m]) {
-                        nm1gf = -1;
-                        break;
-                    } else if (nm1[i] == nm1gf) {
-                        nm1[i] = -1;
-                    }
-
-                }
-            }
-            nm1[m] = nm1gf;
-        }
-        // quit if it's stable
-        if (!*output_size)
-            return output;
-        for (int m = 0; m < n; m++) {
-            if (nm1[m] != -1) {
-                int nm1partner = nm1[m];
-                output[m] = nm1partner;
-                if (match[m] != -1){
-                    p->male_prefs[m*n+match[m]] = INT_MAX;
-                    p->female_prefs[match[m]*n+m] = INT_MAX;
-                }
-                if (reverse_match[nm1partner] != -1 && nm1[reverse_match[nm1partner]] == -1){
-                    output[reverse_match[nm1partner]] = -1; 
-                }
-            }
-        }
-
-        return output;
-} 
-int* pii4(problem* p, int* match, int* reverse_match, int* output_size){
-        int n = p->n;
-        int* output = malloc(n*sizeof(int));
-        for (int i = 0; i < n; i++) {
-            output[i] = match[i];
-        }
-        int nm1[n];
-        *output_size = 0;
-        // find nm1 pairs 
-        for (int m = 0; m < n; m++) {
-            int nm1gf = -1;
-            nm1[m] = -1;
-            for (int f = 0; f < n;f++){
-                // check for blocking and male dominance 
-                if(     (match[m] == -1 ) 
-                        && (reverse_match[f]==-1 || p->female_prefs[f*n+m] < p->female_prefs[f*n+reverse_match[f]])
-                        && (nm1gf == -1 || p->male_prefs[m*n+f] < p->male_prefs[m*n+nm1gf])){
-                    *output_size = 1;
-                    nm1gf = f;
-                }
-            }
-            if (nm1gf != -1) {
-                //check for female dominance
-                for (int i = 0; i < m; i++) {
-                    if (nm1[i] == nm1gf
-                        && p->female_prefs[nm1gf*n+i] < p->female_prefs[nm1gf*n+m]) {
-                        nm1gf = -1;
-                        break;
-                    } else if (nm1[i] == nm1gf) {
-                        nm1[i] = -1;
-                    }
-
-                }
-            }
-            nm1[m] = nm1gf;
-        }
-        // quit if it's stable
-        if (!*output_size)
-            return output;
-        for (int m = 0; m < n; m++) {
-            if (nm1[m] != -1) {
-                int nm1partner = nm1[m];
-                output[m] = nm1partner;
-                if (reverse_match[nm1partner] != -1 && nm1[reverse_match[nm1partner]] == -1){
-                    output[reverse_match[nm1partner]] = -1; 
-                }
-            }
-        }
-
-        return output;
-} 
-// performs all possible divorces for this match, and returns an array of size output_size*n with the resulting permutations
-int* divorce(problem* p, int* match, int* reverse_match, int* output_size){
-        int n = p->n;
-        int* output = malloc(n*n*n*sizeof(int));
-        *output_size = 0;
-        // find blocking pairs
-        for (int m = 0; m < n; m++) {
-            for (int f = 0; f < n;f++){
-                if(p->male_prefs[m*n+f] < p->male_prefs[m*n+match[m]] 
-                        && p->female_prefs[f*n+m] < p->female_prefs[f*n+reverse_match[f]]){
-                    for (int i = 0; i < n; i++){
-                        output[*output_size*n + i] = match[i];
-                    }
-                    int m2 = reverse_match[f];
-                    swap(output + *output_size*n,m,m2);
-                    (*output_size)++;
-                }
-            }
-        }
-        return output;
-} 
-
 void random_match(int n, int* match){
     for (int k = 0;k < n; k++) {
         int j= rand() % (k+1);
@@ -428,6 +177,110 @@ int* reverse(int n, int* match){
     }
     return to_return;
 }
+
+// returns the number of steps the algorithm takes to converge on the given problem, or -1 if it does not converge in time
+int num_steps(problem* p,int* starting_match, int max_iters, int* (*alg)(problem*,int*,int*,int*)){
+        int n = p->n;
+        int* match = starting_match;
+        int* reverse_match = reverse(n,match);
+        int output_size = 0;
+        int j;
+        problem p_copy = copy_problem(p);
+#ifdef PRINT_FAILS
+        char* matches = malloc(sizeof(char)*max_iters*n*10);
+        matches[0] = '\0';
+        char temp[10];
+        for (int  k = 0; k < n; k++){
+            sprintf(temp, "\t%d", match[k]);
+            strcat(matches,temp);
+        }
+        strcat(matches, "\n");
+#endif 
+        for(int i = 0; i < n*n;i++){
+            p_copy.male_prefs[i] = p->male_prefs[i];
+            p_copy.female_prefs[i] = p->female_prefs[i];
+        }
+        for (j =0; j < max_iters; j++){
+            if(is_filled(p,match) && is_stable(p,match,reverse_match)){
+                free(alg(&p_copy,match,reverse_match,&output_size));
+                assert(output_size ==0);
+                free(match);
+#ifdef PRINT_FAILS
+                free(matches);
+#endif
+                free(p_copy.male_prefs);
+                free(p_copy.female_prefs);
+                free(reverse_match);
+                return j;
+            }
+            else {
+                assert(output_size == 1 || j == 0);
+            }
+            int* output = alg(&p_copy,match,reverse_match,&output_size);
+#ifdef PRINT_FAILS
+            char temp[10];
+            for (int  k = 0; k < n; k++){
+                sprintf(temp, "\t%d", output[k]);
+                strcat(matches,temp);
+            }
+            strcat(matches, "\n");
+#endif
+            free(match);
+            free(reverse_match);
+            match = output;
+            reverse_match = reverse(n,output);
+        }
+#ifdef PRINT_FAILS
+        printf("failed on\n");
+        printf("male_prefs:\n");
+        for (int j = 0; j < n; j++){
+            for (int k = 0; k < n; k++){
+                printf("%d ", p->male_prefs[j*n+k]);
+            }
+            printf("\n");
+        }
+        printf("female_prefs:\n");
+        for (int j = 0; j < n; j++){
+            for (int k = 0; k < n; k++){
+                printf("%d ", p->female_prefs[j*n+k]);
+            }
+            printf("\n");
+        }
+        printf("progress:\n");
+        printf("%s",matches);
+        printf("\n\n");
+        free(matches);
+#endif
+        free(p_copy.male_prefs);
+        free(p_copy.female_prefs);
+        free(match);
+        free(reverse_match);
+        return -1;
+}
+// returns the number of steps the algorithm takes to converge on the given problem, or -1 if it does not converge in time
+// assumes correct algorithm that does not modify the problem
+int num_steps_fast(problem* p,int* starting_match, int max_iters, int* (*alg)(problem*,int*,int*,int*)){
+        int n = p->n;
+        int* match = starting_match;
+        int* reverse_match = reverse(n,match);
+        int output_size;
+        int j;
+        for (j =0; j < max_iters; j++){
+            int* output = alg(p,match,reverse_match,&output_size);
+            free(match);
+            free(reverse_match);
+            match = output;
+            reverse_match = reverse(n,output);
+            if(output_size == 0){
+                free(match);
+                free(reverse_match);
+                return j;
+            }
+        }
+        free(match);
+        free(reverse_match);
+        return -1;
+}
 double convergence_rate(int n, int trials, int iterations, int* (*alg)(problem*,int*,int*,int*)){
     problem pv;
     problem* p = &pv;
@@ -440,21 +293,9 @@ double convergence_rate(int n, int trials, int iterations, int* (*alg)(problem*,
         fill_random(p); 
         int* match= malloc(n*sizeof(int));
         random_match(n,match);
-        int* reverse_match = reverse(n,match);
-        int output_size;
-        for (int j =0; j < iterations; j++){
-            int* output = alg(p,match,reverse_match,&output_size);
-            assert(output_size == 1||output_size == 0);
-            free(match);
-            free(reverse_match);
-            match = output;
-            reverse_match = reverse(n,output);
+        if (num_steps(p,match,iterations,alg) != -1){
+                passed++;
         }
-        if(is_filled(p,match) && is_stable(p,match,reverse_match)){
-            passed++;
-        }
-        free(reverse_match);
-        free(match);
     }
     free(p->male_prefs);
     free(p->female_prefs);
@@ -471,42 +312,179 @@ double convergence_rate_all_single(int n, int trials, int iterations, int* (*alg
     for (int i = 0; i < trials; i++) {
         fill_random(p); 
         int* match= malloc(n*sizeof(int));
-        for (int i = 0; i < n; i++) {
-            match[i] = -1;
+        for (int j = 0; j < n; j++) {
+            match[j] = -1;
         }
-        int* reverse_match = reverse(n,match);
-        int output_size;
-        for (int j =0; j < iterations; j++){
-            int* output = alg(p,match,reverse_match,&output_size);
-            assert(output_size == 1||output_size == 0);
-            free(match);
-            free(reverse_match);
-            match = output;
-            reverse_match = reverse(n,output);
+        if (num_steps(p,match,iterations,alg) != -1){
+                passed++;
         }
-        if(is_filled(p,match) && is_stable(p,match,reverse_match)){
-            passed++;
-        }
-        free(reverse_match);
-        free(match);
     }
     free(p->male_prefs);
     free(p->female_prefs);
     return passed/trials;
 }
+// average number of iterations starting from a random state or -1 if it does not converge
+int avg_num_iters_rand(int n,int trials, int* (*alg)(problem*,int*,int*,int*)){
+    problem pv;
+    problem* p = &pv;
+    p->n = n;
+    p->male_prefs = malloc(sizeof(int)*n*n);
+    p->female_prefs = malloc(sizeof(int)*n*n);
+    
+    long total_iters  = 0;
+    for (int i = 0; i < trials; i++) {
+        fill_random(p); 
+        int* match= malloc(n*sizeof(int));
+        random_match(n,match);
+        int current_iters = num_steps(p,match,n*n,alg);
+        if (current_iters == -1)
+           return -1; 
+        total_iters += current_iters;
+        //printf("%d\n",current_iters);
+    }
+    free(p->male_prefs);
+    free(p->female_prefs);
+    return total_iters/trials;
+}
+// number of iterations starting from an all single state or -1 if it does not converge, returns [min,max,avg] over the trials
+// max is INT_MAX if algorithm does not converge in time
+int* num_iters_single(int n,int trials, int* (*alg)(problem*,int*,int*,int*),bool fast){
+    int* output = malloc(sizeof(int)*3);
+    output[0] = INT_MAX;
+    output[1] = -1;
+    problem pv;
+    problem* p = &pv;
+    p->n = n;
+    p->male_prefs = malloc(sizeof(int)*n*n);
+    p->female_prefs = malloc(sizeof(int)*n*n);
+    
+    long total_iters  = 0;
+    for (int i = 0; i < trials; i++) {
+        fill_random(p); 
+        int* match= malloc(n*sizeof(int));
+        for (int i = 0; i < n;i++)
+            match[i] = -1;
+        int current_iters;
+        if (fast){
+            current_iters = num_steps_fast(p,match,n*n,alg);
+        }else{
+            current_iters = num_steps(p,match,n*n,alg);
+        }
+        if (current_iters == -1){
+           output[1] = INT_MAX; 
+        }
+        total_iters += current_iters;
+        output[0] = current_iters < output[0] ? current_iters : output[0]; 
+        output[1] = current_iters > output[1] ? current_iters : output[1]; 
+        //printf("%d\n",current_iters);
+    }
+    free(p->male_prefs);
+    free(p->female_prefs);
+    output[2] = total_iters/trials;
+    return output;
+}
+void compare_single_start(int num_algs, int* (**algs)(problem*,int*,int*,int*)){
+    problem pv;
+    problem* p = &pv;
+    for (int n = 2; n < 20;n++) {
+        p->n = n;
+        p->male_prefs = malloc(sizeof(int)*n*n);
+        p->female_prefs = malloc(sizeof(int)*n*n);
+        int* match = malloc(sizeof(int)*n);
+        int* reverse_match = malloc(sizeof(int)*n);
+        for (int t = 0; t < 2; t++) {
+            fill_random(p);
+            for (int i =0; i < n;i++){
+                match[i] = -1;
+                reverse_match[i] = -1;
+            }
+            problem* problems = malloc(sizeof(problem)*num_algs);
+            for (int i =0; i < num_algs; i++){
+                problems[i] = copy_problem(p);
+            }
+            int** outputs = malloc(sizeof(int*)*num_algs);
+            for (int i = 0; i < n*2; i++) {
+               
+               for (int j = 0; j < num_algs; j++) {
+                   int junk;
+                   outputs[j] = algs[j](p,match,reverse_match,&junk);
+               }
+               for (int h = 0; h < n; h++){
+                   reverse_match[h] =  -1;
+               }
+               for (int k = 0; k < n; k++) {
+                   int val = outputs[0][k];
+                   for (int j = 1; j < num_algs; j++){
+                       if (outputs[j][k] != val){
+                           printf("different\n");
+                           return;
+                       }
+                   }
+                   match[k] = val;
+
+                   if (val != -1)
+                       reverse_match[val] = k;
+               }
+               for (int j = 0; j < num_algs; j++){
+                   free(outputs[j]);
+               }
+               
+           }
+           for (int i = 0; i < num_algs; i++){
+               free(problems[i].male_prefs);  
+               free(problems[i].female_prefs);
+           }
+           free(outputs);
+        }
+        free(match);
+        free(reverse_match);
+        free(p->male_prefs);
+        free(p->female_prefs);
+    }
+    
+}
+
 int main() {
     int n = 500;
-    int iters = 5*n;
-    int trials = 100;
-    double percent;
     //percent = 100*convergence_rate(n,trials,iters,&pii);
     //printf("pii passed %f%% of the time\n",percent);
+    int trials = 500;
+    for (int i = 2; i <= n; i++){
+        int* out = num_iters_single(i,trials,&pii4,true);
+        printf("%d,%d\n",i,out[2]);
+        if (i% 10 == 0)
+            fflush(stdout);
+        free(out);
+    }
+    /*
+    int* (*algs[4])(problem*,int*,int*,int*) = {&dummy,&pii2,&pii3,&pii4};
+    char* names[4] = {"pii","pii2","pii3","pii4"};
+    double percent;
+    int iters = n;
+    */
+    //compare_single_start(4,algs);
+    //percent = 100*convergence_rate_all_single(n,trials,iters,&pii);
+    //printf("pii passed %f%% of the time\n",percent);
+    /*
     percent = 100*convergence_rate_all_single(n,trials,iters,&pii2);
     printf("pii2 passed %f%% of the time\n",percent);
     percent = 100*convergence_rate_all_single(n,trials,iters,&pii3);
     printf("pii3 passed %f%% of the time\n",percent);
     percent = 100*convergence_rate_all_single(n,trials,iters,&pii4);
     printf("pii4 passed %f%% of the time\n",percent);
+    */
+    /*
+    int* out;
+    out = num_iters_single(n,trials,&pii2);
+    printf("pii2 took (%d,%d,%d) iterations \n",out[0],out[1],out[2]);
+    free(out);
+    out = num_iters_single(n,trials,&pii3);
+    printf("pii3 took (%d,%d,%d) iterations \n",out[0],out[1],out[2]);
+    free(out);
+    out = num_iters_single(n,trials,&pii4);
+    printf("pii4 took (%d,%d,%d) iterations \n",out[0],out[1],out[2]);
+    free(out);
+    */
     /*
     int t = 300;
     int n = 4;
