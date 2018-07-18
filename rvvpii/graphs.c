@@ -455,9 +455,6 @@ double convergence_rate(int n, int trials, int iterations, int* (*alg)(problem*,
         }
         free(reverse_match);
         free(match);
-        if (i % 100 == 0){
-            fprintf(stderr,"PROGRESS: finished %d/%d trials\n",i,trials);
-        }
     }
     free(p->male_prefs);
     free(p->female_prefs);
@@ -492,27 +489,24 @@ double convergence_rate_all_single(int n, int trials, int iterations, int* (*alg
         }
         free(reverse_match);
         free(match);
-        if (i % 100 == 0){
-            fprintf(stderr,"PROGRESS: finished %d/%d trials\n",i,trials);
-        }
     }
     free(p->male_prefs);
     free(p->female_prefs);
     return passed/trials;
 }
 int main() {
-    int n = 100;
-    int iters = n;
-    int trials = 10000;
+    int n = 500;
+    int iters = 5*n;
+    int trials = 100;
     double percent;
-    //percent = 100*convergence_rate_all_single(n,trials,iters,&pii);
+    //percent = 100*convergence_rate(n,trials,iters,&pii);
     //printf("pii passed %f%% of the time\n",percent);
-    //percent = 100*convergence_rate_all_single(n,trials,iters,&pii2);
-    //printf("pii2 passed %f%% of the time\n",percent);
+    percent = 100*convergence_rate_all_single(n,trials,iters,&pii2);
+    printf("pii2 passed %f%% of the time\n",percent);
     percent = 100*convergence_rate_all_single(n,trials,iters,&pii3);
     printf("pii3 passed %f%% of the time\n",percent);
-    //percent = 100*convergence_rate_all_single(n,trials,iters,&pii4);
-    //printf("pii4 passed %f%% of the time\n",percent);
+    percent = 100*convergence_rate_all_single(n,trials,iters,&pii4);
+    printf("pii4 passed %f%% of the time\n",percent);
     /*
     int t = 300;
     int n = 4;
