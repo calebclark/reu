@@ -383,6 +383,35 @@ int* num_iters_single(int n,int trials, int* (*alg)(problem*,int*,int*,int*),boo
     output[2] = total_iters/trials;
     return output;
 }
+// return an array freq_dist of size n*n where freq_dist[k] = i means the algorithm took k iterations i times
+// algorithm must always converge in n*n steps
+int* num_iters_freq_dist(int n,int trials, int* (*alg)(problem*,int*,int*,int*),bool fast, int* max){
+    int* output = calloc(sizeof(int),n*n);
+    *max = 0;
+    problem pv;
+    problem* p = &pv;
+    p->n = n;
+    p->male_prefs = malloc(sizeof(int)*n*n);
+    p->female_prefs = malloc(sizeof(int)*n*n);
+    for (int i = 0; i < trials; i++) {
+        fill_random(p); 
+        int* match= malloc(n*sizeof(int));
+        for (int i = 0; i < n;i++)
+            match[i] = -1;
+        int current_iters;
+        if (fast){
+            current_iters = num_steps_fast(p,match,n*n,alg);
+        }else{
+            current_iters = num_steps(p,match,n*n,alg);
+        }
+        assert(current_iters >= 0 && current_iters <= n*n);
+        output[current_iters]++;
+        *max = current_iters > *max ? current_iters : *max;
+    }
+    free(p->male_prefs);
+    free(p->female_prefs);
+    return output;
+}
 void compare_single_start(int num_algs, int* (**algs)(problem*,int*,int*,int*)){
     problem pv;
     problem* p = &pv;
@@ -445,12 +474,15 @@ void compare_single_start(int num_algs, int* (**algs)(problem*,int*,int*,int*)){
 }
 
 int main() {
-    int n = 500;
+    int n = 100;
     //percent = 100*convergence_rate(n,trials,iters,&pii);
     //printf("pii passed %f%% of the time\n",percent);
-    int trials = 7500;
-    int* out = num_iters_single(n,trials,&pii4,true);
-    printf("%d,%d\n",n,out[2]);
+    int trials = 1000000;
+    int max;
+    int* out = num_iters_freq_dist(n,trials,&pii4,true,&max);
+    for (int i = 0; i <= max; i++)
+        printf("%d,%d\n",i, out[i]);
+    free(out);
     /*
     for (int i = 2; i <= n; i++){
         int* out = num_iters_single(i,trials,&pii4,true);
