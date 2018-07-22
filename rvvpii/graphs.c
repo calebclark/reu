@@ -76,6 +76,20 @@ bool is_filled(problem* p, int* match) {
     }
     return true;
 }
+void print_problem(problem* p){
+    int n = p->n;
+    printf("male_prefs:\n");
+    for (int i =0; i < n; i++) {
+        printarr(n,p->male_prefs +i*n);
+        printf("\n");
+    }
+    printf("female_prefs:\n");
+    for (int i =0; i < n; i++) {
+        printarr(n,p->female_prefs +i*n);
+        printf("\n");
+    }
+}
+
 void fill_random(problem* p) {
         int n = p->n;
         // seed the random number generator
@@ -259,19 +273,27 @@ int num_steps(problem* p,int* starting_match, int max_iters, int* (*alg)(problem
 }
 // returns the number of steps the algorithm takes to converge on the given problem, or -1 if it does not converge in time
 // assumes correct algorithm that does not modify the problem
-int num_steps_fast(problem* p,int* starting_match, int max_iters, int* (*alg)(problem*,int*,int*,int*)){
+int num_steps_fast(problem* p,int* starting_match, int max_iters, int* (*alg)(problem*,int*,int*,int*),bool print){
         int n = p->n;
         int* match = starting_match;
         int* reverse_match = reverse(n,match);
         int output_size;
         int j;
         for (j =0; j < max_iters; j++){
+            if (print) {
+                printarr(n,match);
+                printf("\n");
+            }
             int* output = alg(p,match,reverse_match,&output_size);
             free(match);
             free(reverse_match);
             match = output;
             reverse_match = reverse(n,output);
             if(output_size == 0){
+                if (print) {
+                    printarr(n,match);
+                    printf("\n");
+                }
                 free(match);
                 free(reverse_match);
                 return j;
@@ -279,6 +301,8 @@ int num_steps_fast(problem* p,int* starting_match, int max_iters, int* (*alg)(pr
         }
         free(match);
         free(reverse_match);
+        if (print)
+            printf("failed\n");
         return -1;
 }
 double convergence_rate(int n, int trials, int iterations, int* (*alg)(problem*,int*,int*,int*)){
@@ -366,7 +390,7 @@ int* num_iters_single(int n,int trials, int* (*alg)(problem*,int*,int*,int*),boo
             match[i] = -1;
         int current_iters;
         if (fast){
-            current_iters = num_steps_fast(p,match,n*n,alg);
+            current_iters = num_steps_fast(p,match,n*n,alg,false);
         }else{
             current_iters = num_steps(p,match,n*n,alg);
         }
@@ -400,7 +424,7 @@ int* num_iters_freq_dist(int n,int trials, int* (*alg)(problem*,int*,int*,int*),
             match[i] = -1;
         int current_iters;
         if (fast){
-            current_iters = num_steps_fast(p,match,n*n,alg);
+            current_iters = num_steps_fast(p,match,n*n,alg,false);
         }else{
             current_iters = num_steps(p,match,n*n,alg);
         }
@@ -472,14 +496,73 @@ void compare_single_start(int num_algs, int* (**algs)(problem*,int*,int*,int*)){
     }
     
 }
+void print_steps(problem* p, int* (*alg)(problem*,int*,int*,int*)){
+    int n = p->n;
+    int* match = malloc(sizeof(int)*n);
+    for (int i = 0; i < n; i++) {
+        match[i] = -1;
+    }
+    num_steps_fast(p,match,n*n,alg,true);
+}
+int ipow(int base, int power) {
+    int to_return = 1;
+    for (int i = 0; i < power; i++)
+        to_return *= base;
+    return to_return;
+}
+void set_prefs(int state, int* male_prefs, int* female_prefs,int perms[6][3]) {
+    int n =3;
+    for (int i = 0; i < n; i++){
+        int perm = (state/ipow(6,i))%6;
+        for (int j = 0; j < 3; j++)
+            male_prefs[i*3 +j] = perms[perm][j];
+    }
+    for (int i = n; i < 2*n; i++){
+        int perm = (state/ipow(6,i))%6;
+        for (int j = 0; j < 3; j++)
+            female_prefs[(i-3)*3+j] = perms[perm][j];
+    }
+}
+int* num_iters_all_3(int* (*alg)(problem*,int*,int*,int*),int* max){
+    int perms[6][3] = {{1,2,3},{1,3,2},{2,1,3},{2,3,1},{3,1,2},{3,2,1}};
+    int n = 3;
+    problem p;
+    p.n = 3;
+    *max = 0;
+    p.male_prefs = (int*) malloc(sizeof(int)*n*n);
+    p.female_prefs = (int*) malloc(sizeof(int)*n*n);
+    int* output = calloc(sizeof(int),100);
+
+    for (int state = 0; state < 46656; state++) {
+        set_prefs(state,p.male_prefs,p.female_prefs,perms);
+        print_problem(&p);
+        printf("\n");
+        int* match = malloc(sizeof(int)*n);
+        for (int i = 0; i < 3; i++) {
+            match[i] = -1;
+        }
+        int iters = num_steps_fast(&p,match, 100, alg,false);
+        output[iters]++;
+        *max = iters > *max ?iters : *max;
+    }
+    return output;
+}
 
 int main() {
-    int n = 100;
+    //int n = 500;
     //percent = 100*convergence_rate(n,trials,iters,&pii);
     //printf("pii passed %f%% of the time\n",percent);
-    int trials = 1000000;
+    //int trials = 100;
     int max;
-    int* out = num_iters_freq_dist(n,trials,&pii4,true,&max);
+    //problem p;
+    //p.n = n;
+    //int std_male_prefs[5][5] = {{3,2,4,1,0},{3,2,4,0,1},{0,2,4,3,1},{1,2,0,4,3},{2,1,3,0,4}};
+    //int std_female_prefs[5][5] = {{2,1,3,0,4},{3,2,1,0,4},{4,2,3,0,1},{3,1,2,4,0},{3,2,4,0,1}};
+    //p.male_prefs = (int*) std_male_prefs;
+    //p.female_prefs = (int*) std_female_prefs;
+    //print_steps(&p,&pii4);
+    //int* out = num_iters_freq_dist(n,trials,&pii4,true,&max);
+    int* out = num_iters_all_3(&pii4,&max);
     for (int i = 0; i <= max; i++)
         printf("%d,%d\n",i, out[i]);
     free(out);

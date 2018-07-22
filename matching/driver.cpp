@@ -19,7 +19,6 @@ void time_alg(void (*alg)(int,int*,int*,int*), string name, int n, int trials) {
        print_times(name,times,TRIALS);
        free(times);
 }
-
 void run_alg(void (*alg)(int,int*,int*,int*), string name, int n, int trials) {
     int t = test_matcher(alg); 
     if (t == 0) {
@@ -32,8 +31,6 @@ void run_alg(void (*alg)(int,int*,int*,int*), string name, int n, int trials) {
        cout << name << " failed test " << t << endl;
     }
 }
-
-
 void print_times(string name, long long unsigned int* times, int size) {
     setlocale(LC_NUMERIC, "");
     cout << "times for: " << name << endl;
@@ -44,8 +41,5 @@ void print_times(string name, long long unsigned int* times, int size) {
         }
         sum += times[i];
     }
-    printf("average time = %'llu nanoseconds\n", sum/size );
-
-
-
+    printf("average time = %'llu nanoseconds\n", sum/size);
 }
