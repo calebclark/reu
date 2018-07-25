@@ -549,10 +549,10 @@ int* num_iters_all_3(int* (*alg)(problem*,int*,int*,int*),int* max){
 }
 
 int main() {
-    //int n = 500;
+    int n = 1000;
     //percent = 100*convergence_rate(n,trials,iters,&pii);
     //printf("pii passed %f%% of the time\n",percent);
-    //int trials = 100;
+    int trials = 10000;
     int max;
     //problem p;
     //p.n = n;
@@ -562,18 +562,17 @@ int main() {
     //p.female_prefs = (int*) std_female_prefs;
     //print_steps(&p,&pii4);
     //int* out = num_iters_freq_dist(n,trials,&pii4,true,&max);
-    int* out = num_iters_all_3(&pii4,&max);
-    for (int i = 0; i <= max; i++)
-        printf("%d,%d\n",i, out[i]);
-    free(out);
-    /*
+    //int* out = num_iters_all_3(&pii4,&max);
+    //for (int i = 0; i <= max; i++)
+        //printf("%d,%d\n",i, out[i]);
+    //free(out);
     for (int i = 2; i <= n; i++){
         int* out = num_iters_single(i,trials,&pii4,true);
         printf("%d,%d\n",i,out[2]);
         if (i% 10 == 0)
             fflush(stdout);
         free(out);
-    }*/
+    }
     /*
     int* (*algs[4])(problem*,int*,int*,int*) = {&dummy,&pii2,&pii3,&pii4};
     char* names[4] = {"pii","pii2","pii3","pii4"};
