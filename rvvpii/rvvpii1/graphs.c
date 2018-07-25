@@ -552,10 +552,10 @@ int* num_iters_all_3(int* (*alg)(problem*,int*,int*,int*),int* max){
 }
 
 int main() {
-    int n = 50;
+    int n = 500;
     //percent = 100*convergence_rate(n,trials,iters,&pii);
     //printf("pii passed %f%% of the time\n",percent);
-    int trials = 10000000;
+    int trials = 100000;
     int max;
     //problem p;
     //p.n = n;

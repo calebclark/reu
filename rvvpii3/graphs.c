@@ -555,7 +555,7 @@ int main() {
     int n = 50;
     //percent = 100*convergence_rate(n,trials,iters,&pii);
     //printf("pii passed %f%% of the time\n",percent);
-    int trials = 10000000;
+    int trials = 100000000;
     int max;
     //problem p;
     //p.n = n;
