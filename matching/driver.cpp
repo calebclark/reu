@@ -4,42 +4,18 @@
 #include "algs.h"
 #include "tests.h"
 using namespace std;
-#define TRIALS  1000000
-#define N  10
+#define TRIALS  10000000
+#define N  100
 bool verbose = false;
-void print_times(string name, long long unsigned int* times, int size); 
-void test_alg(void (*alg)(int,int*,int*,int*), string name, int n, int trials); 
-void time_alg(void (*alg)(int,int*,int*,int*), string name, int n, int trials); 
+void prop_alg(int (*alg)(int,int*,int*,int*), int n, int trials);
 int main() {
-    time_alg(&GS, "Sequential GS", N, TRIALS);
-    time_alg(&trivial, "Trivial", N, TRIALS);
+    prop_alg(&GS, N, TRIALS);
 }
-void time_alg(void (*alg)(int,int*,int*,int*), string name, int n, int trials) {
-       long long unsigned int* times = time_matcher(alg, n,trials); 
-       print_times(name,times,TRIALS);
-       free(times);
-}
-void run_alg(void (*alg)(int,int*,int*,int*), string name, int n, int trials) {
-    int t = test_matcher(alg); 
-    if (t == 0) {
-       cout << name << " passed all tests\n";
-       long long unsigned int* times = time_matcher(alg, n,trials); 
-       print_times(name,times,TRIALS);
-       free(times);
+void prop_alg(int (*alg)(int,int*,int*,int*), int n, int trials) {
+    int max;
+    int* scores = freq_dist(n,alg,trials, &max);
+    for (int i = 0; i <= max; i++) {
+        printf("%d, %d\n", i, scores[i]);
     }
-    else {
-       cout << name << " failed test " << t << endl;
-    }
-}
-void print_times(string name, long long unsigned int* times, int size) {
-    setlocale(LC_NUMERIC, "");
-    cout << "times for: " << name << endl;
-    long long unsigned int sum = 0;
-    for (int i = 0; i < size;i++){
-        if (verbose) {    
-            printf("elapsed time = %'llu nanoseconds\n",  times[i]);
-        }
-        sum += times[i];
-    }
-    printf("average time = %'llu nanoseconds\n", sum/size);
+    free(scores);
 }

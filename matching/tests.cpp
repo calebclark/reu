@@ -16,6 +16,7 @@ void seed(){
     if (!seeded){
         srand(time(0));
     }
+    seeded = 1;
 }
 void fill_random(int n, int* male_prefs, int* female_prefs) {
         // seed the random number generator
@@ -42,6 +43,38 @@ void fill_random(int n, int* male_prefs, int* female_prefs) {
                 female_prefs[i*n+j] = swapf;
             }
         }
+}
+int* freq_dist(int n, int (*alg)(int,int*,int*,int*), int trials, int* max) {
+    int* scores = (int*) calloc(sizeof(int),n*n);
+    int* male_prefs= (int*) malloc(sizeof(int)*n*n);
+    int* female_prefs = (int*) malloc(sizeof(int)*n*n);
+    int* output= (int*) malloc(sizeof(int)*n);
+    *max = 0;
+    for (int i = 0; i < trials; i++){
+        fill_random(n,male_prefs,female_prefs);
+        int props = alg(n,male_prefs,female_prefs, output);
+        //assert(is_stable(n, male_prefs, female_prefs, output));
+        scores[props]++;
+        *max = *max < props ? props : *max;
+    }
+    free(male_prefs);
+    free(female_prefs);
+    free(output);
+    return scores;
+}
+int avg(int n, int (*alg)(int,int*,int*,int*), int trials) {
+    long total_props = 0;
+    int* male_prefs= (int*) malloc(sizeof(int)*n*n);
+    int* female_prefs = (int*) malloc(sizeof(int)*n*n);
+    int* output= (int*) malloc(sizeof(int)*n);
+    for (int i = 0; i < trials; i++){
+        fill_random(n,male_prefs,female_prefs);
+        total_props += alg(n,male_prefs,female_prefs, output);
+    }
+    free(male_prefs);
+    free(female_prefs);
+    free(output);
+    return total_props/trials;
 }
 long long unsigned int* time_matcher(void (*alg)(int,int*,int*,int*),int n, int t){
     long long unsigned int* times = (long long unsigned int*) calloc(sizeof(long long unsigned int),t);

@@ -4,10 +4,14 @@ NVCCFLAGS=-std=c++11 -c -arch=sm_61 -c GScuda.cu
  
 
 
-all: driver 
+all: alln
 driver: algs.o tests.o driver.cpp
 	g++ $(CPPFLAGS) -c driver.cpp
 	g++ $(CPPFLAGS) driver.o algs.o tests.o -o driver
+
+alln: algs.o tests.o alln.cpp
+	g++ $(CPPFLAGS) -c alln.cpp
+	g++ $(CPPFLAGS) alln.o algs.o tests.o -o alln
 	
 
 algs.o: algs.cpp algs.h 

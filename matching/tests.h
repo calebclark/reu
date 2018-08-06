@@ -19,6 +19,8 @@ int test_matcher(void (*alg)(int,int*,int*,int*));
  * returns an array of size t with the runtime of each trial in nano seconds 
  */
 long long unsigned int* time_matcher(void (*alg)(int,int*,int*,int*),int n, int t);
+int* freq_dist(int n, int (*alg)(int,int*,int*,int*), int trials, int* max);
+int avg(int n, int (*alg)(int,int*,int*,int*), int trials); 
 
 
 #endif

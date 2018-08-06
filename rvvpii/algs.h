@@ -2,6 +2,7 @@
 #define ALGS
 typedef struct {
     int n;
+    // male_prefs[i*n+j] = r mean male i ranks female j rth
     int* male_prefs;
     int* female_prefs;
 } problem;

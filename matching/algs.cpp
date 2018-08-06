@@ -15,9 +15,9 @@ typedef struct {
 } man_info;
 
 /* 
- * Find a stable matching using the GS algorithm
+ * Find a stable matching using the GS algorithm return # of proposals used
  */
-void  GS(int n, int* male_prefs, int* female_prefs, int* output) {
+int GS(int n, int* male_prefs, int* female_prefs, int* output) {
     // 0 if an output slot has not yet been initialized
     uint8_t* output_used = (uint8_t*) calloc(sizeof(uint8_t),n);
     // flip female prefs for easy access
@@ -25,11 +25,13 @@ void  GS(int n, int* male_prefs, int* female_prefs, int* output) {
     man_info* state = (man_info*) calloc(n,sizeof(man_info));
     // false if any man is still unmatched
     bool all_matched = false;
+    int proposals = 0;
     while (!all_matched){
         // assume everyone is matched until we find out otherwise
         all_matched = true;
         for (int i = 0; i < n; i++) {
             if (!state[i].is_dating) {
+                proposals++;
                 all_matched = false;
                 int next_female = male_prefs[i*n+(state[i].proposal_index++)];
                 bool swap = false;
@@ -56,12 +58,14 @@ void  GS(int n, int* male_prefs, int* female_prefs, int* output) {
 #endif
     free(state);
     free(output_used);
+    return proposals;
 }
 /*
  * Builds the trivial matching (male 1 with female 1 etc...) usually not stable
  */
-void trivial(int n,__attribute__((unused)) int* male_prefs,__attribute__((unused)) int* female_prefs,int* output) { 
+int trivial(int n,__attribute__((unused)) int* male_prefs,__attribute__((unused)) int* female_prefs,int* output) { 
     for (int i = 0; i < n; i++) {
         output[i] = i;
     }
+    return 0;
 }

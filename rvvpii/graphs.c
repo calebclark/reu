@@ -1,4 +1,7 @@
 #include<stdint.h>
+#include<sys/types.h>
+#include<unistd.h>
+#include<stdint.h>
 #include<assert.h>
 #include<stdlib.h>
 #include<stdio.h>
@@ -17,7 +20,7 @@ __attribute__((const)) int factorial(uint8_t n) {
 uint8_t seeded = 0;
 void seed(){
     if (!seeded){
-        srand(time(0));
+        srand(time(0)+getpid());
     }
     seeded=1;
 }
@@ -86,6 +89,42 @@ void print_problem(problem* p){
     printf("female_prefs:\n");
     for (int i =0; i < n; i++) {
         printarr(n,p->female_prefs +i*n);
+        printf("\n");
+    }
+}
+void print_problem_fancy(problem* p){
+    int n = p->n;
+    printf("male_prefs:\n");
+    for (int i =0; i < n; i++) {
+        printf("m_%d:",i);
+        bool prefix = false;
+        for (int j = 0; j < n; j++){
+            if (prefix) 
+                printf(",");
+            prefix = true;
+            for (int k = 0; k < n; k++){
+                if (p->male_prefs[i*n+k] == j){
+                    printf("w_%d",k);
+                }
+            }
+        }
+        printf("\n");
+    }
+    printf("female_prefs:\n");
+    for (int i =0; i < n; i++) {
+        printf("w_%d:",i);
+        bool prefix = false;
+        for (int j = 0; j < n; j++){
+            if (prefix) 
+                printf(",");
+            prefix = true;
+            for (int k = 0; k < n; k++){
+                if (p->female_prefs[i*n+k] == j){
+                    printf("m_%d",k);
+                    break;
+                }
+            }
+        }
         printf("\n");
     }
 }
@@ -360,7 +399,7 @@ int avg_num_iters_rand(int n,int trials, int* (*alg)(problem*,int*,int*,int*)){
         fill_random(p); 
         int* match= malloc(n*sizeof(int));
         random_match(n,match);
-        int current_iters = num_steps(p,match,n*n,alg);
+        int current_iters = num_steps(p,match,n*n+1,alg);
         if (current_iters == -1)
            return -1; 
         total_iters += current_iters;
@@ -535,8 +574,8 @@ int* num_iters_all_3(int* (*alg)(problem*,int*,int*,int*),int* max){
 
     for (int state = 0; state < 46656; state++) {
         set_prefs(state,p.male_prefs,p.female_prefs,perms);
-        print_problem(&p);
-        printf("\n");
+        //print_problem(&p);
+        //printf("\n");
         int* match = malloc(sizeof(int)*n);
         for (int i = 0; i < 3; i++) {
             match[i] = -1;
@@ -549,30 +588,41 @@ int* num_iters_all_3(int* (*alg)(problem*,int*,int*,int*),int* max){
 }
 
 int main() {
-    int n = 1000;
+    int n = 100;
     //percent = 100*convergence_rate(n,trials,iters,&pii);
     //printf("pii passed %f%% of the time\n",percent);
-    int trials = 10000;
+    int trials = 100000;
     int max;
     //problem p;
     //p.n = n;
     //int std_male_prefs[5][5] = {{3,2,4,1,0},{3,2,4,0,1},{0,2,4,3,1},{1,2,0,4,3},{2,1,3,0,4}};
     //int std_female_prefs[5][5] = {{2,1,3,0,4},{3,2,1,0,4},{4,2,3,0,1},{3,1,2,4,0},{3,2,4,0,1}};
-    //p.male_prefs = (int*) std_male_prefs;
-    //p.female_prefs = (int*) std_female_prefs;
-    //print_steps(&p,&pii4);
-    //int* out = num_iters_freq_dist(n,trials,&pii4,true,&max);
+    //p.male_prefs = malloc(sizeof(int)*n*n);
+    //p.female_prefs = malloc(sizeof(int)*n*n);
+    //printf("%d\n",avg_num_iters_rand(n,trials,&pii4));
+    //for (int i = 0; i < 10; i++) {
+     //   fill_random(&p);
+        
+        //print_problem_fancy(&p);     
+        //printf("PIIGS iterations:\n");
+        //print_steps(&p,&pii4);
+        //printf("\n\n\n");
+    //}
+    //printf("PII:\n");
+    //print_steps(&p,&pii);
+    int* out = num_iters_freq_dist(n,trials,&pii2,false,&max);
     //int* out = num_iters_all_3(&pii4,&max);
-    //for (int i = 0; i <= max; i++)
-        //printf("%d,%d\n",i, out[i]);
-    //free(out);
+    for (int i = 0; i <= max; i++)
+        printf("%d,%d\n",i, out[i]);
+    free(out);
+    /*
     for (int i = 2; i <= n; i++){
         int* out = num_iters_single(i,trials,&pii4,true);
         printf("%d,%d\n",i,out[2]);
         if (i% 10 == 0)
             fflush(stdout);
         free(out);
-    }
+    } */
     /*
     int* (*algs[4])(problem*,int*,int*,int*) = {&dummy,&pii2,&pii3,&pii4};
     char* names[4] = {"pii","pii2","pii3","pii4"};
