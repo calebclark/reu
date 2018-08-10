@@ -1,5 +1,19 @@
 I've tried to keep the structure of this pretty flat. The folders here are:
-GSseq - A simple sequential implementation of GS in C.
-GScuda - A simple CUDA implementation of GS. (Not finished)
-others - Code I have received from other people, used mainly as a reference/consulted for ideas.
-writings - Things I've written for the reu.
+GSseq - where I initially played around with GS in c. WARNING: code here may be incorrect.
+GSseqcpp - where I moved GSseq to c++. WARNING: code here may be incorrect
+GScuda - where I worked implementing GS in CUDA. WARNING: code here may be incorrect.
+small_matching - GS and PII implentations both sequentially and in CUDA for problems with n < 200. WARNING code here may be incorrect.
+matching - sort of the final destination for my cuda expirimentation and sequential GS stuff. The GS code here is probably correct and is where I got my data from.
+{sanity_check,analysis,NPGS} - clones of matching with slight modification for different purposes.
+expr - some idea I was playing around with that had something to do with collisions. You can probably ignore thing.
+graph-gen - some code to make graphs in DOT format of how divorces and PII traverse the space of all possible matchings.
+rvvpii - started as an extension of graphs, but turned into my implementation of CPII and PII that I got my data from. 
+
+
+Pretty much everything was compiled in CentOS and/or ubuntu with gcc and nvcc.
+You really should just need to run the make files to compile things.
+All of this code was just me playing around with ideas so most of it is pretty unpolished,
+although I will stand by the reliability of the code in the rvvpii and matching folders that 
+I got my data from.
+
+You can contact me with quesions at: caleb.clark@my.wheaton.edu
